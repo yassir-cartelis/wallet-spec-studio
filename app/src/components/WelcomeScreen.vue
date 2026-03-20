@@ -111,12 +111,12 @@ const valueProps = [
       <!-- Brand -->
       <div class="flex flex-col items-center gap-2 mb-8">
         <span class="text-[11px] font-bold tracking-widest text-white bg-brand-700 px-3 py-1 rounded">CARTELIS</span>
-        <h1 class="text-4xl font-bold text-brand-900">Wallet Studio</h1>
+        <h1 class="text-3xl md:text-4xl font-bold text-brand-900">Wallet Studio</h1>
         <p class="text-base text-brand-600 font-medium">L'outil de cadrage pour vos intégrations Brevo Wallet</p>
       </div>
 
       <!-- Value props -->
-      <div class="w-full max-w-3xl grid grid-cols-3 gap-3 mb-10">
+      <div class="w-full max-w-3xl grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 md:mb-10">
         <div
           v-for="vp in valueProps"
           :key="vp.title"
@@ -132,7 +132,7 @@ const valueProps = [
       <div class="w-full max-w-2xl">
         <button
           @click="emit('openAi')"
-          class="group w-full rounded-2xl bg-accent-500 hover:bg-accent-600 text-white p-8 text-left transition-all shadow-lg hover:shadow-xl"
+          class="group w-full rounded-2xl bg-accent-500 hover:bg-accent-600 text-white p-5 md:p-8 text-left transition-all shadow-lg hover:shadow-xl"
         >
           <div class="flex items-start justify-between mb-5">
             <div class="flex items-center gap-3">
@@ -141,7 +141,7 @@ const valueProps = [
             </div>
             <span class="text-accent-300 text-lg group-hover:translate-x-1 transition-transform">→</span>
           </div>
-          <h2 class="text-2xl font-bold leading-snug mb-3">
+          <h2 class="text-xl md:text-2xl font-bold leading-snug mb-3">
             L'IA Cartelis analyse tes documents<br />
             <span class="text-accent-200">et initialise ta spec en quelques secondes</span>
           </h2>
@@ -186,7 +186,7 @@ const valueProps = [
     </div>
 
     <!-- LIBRARY -->
-    <div class="max-w-5xl mx-auto px-6 mt-16 pb-16">
+    <div class="max-w-5xl mx-auto px-4 md:px-6 mt-10 md:mt-16 pb-12">
 
       <div class="flex items-end justify-between mb-6">
         <div>
@@ -217,7 +217,7 @@ const valueProps = [
       </div>
 
       <!-- Projects grid -->
-      <div v-if="filteredProjects.length > 0" class="grid grid-cols-3 gap-4">
+      <div v-if="filteredProjects.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
           v-for="project in filteredProjects"
           :key="project.id"

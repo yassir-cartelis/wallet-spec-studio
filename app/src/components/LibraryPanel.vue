@@ -96,7 +96,7 @@ function formatDate(iso: string) {
   />
 
   <!-- Panel -->
-  <aside class="fixed right-0 top-0 bottom-0 z-50 w-[600px] bg-white shadow-2xl flex flex-col border-l border-brand-200">
+  <aside class="fixed right-0 top-0 bottom-0 z-50 w-full md:w-[600px] bg-white shadow-2xl flex flex-col border-l border-brand-200">
 
     <!-- Header -->
     <div class="flex items-center gap-3 px-6 py-4 border-b border-brand-100 shrink-0">
@@ -130,7 +130,7 @@ function formatDate(iso: string) {
         Aucun use-case dans cette catégorie.
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div
           v-for="project in filteredProjects"
           :key="project.id"

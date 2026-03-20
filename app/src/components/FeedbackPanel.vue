@@ -122,7 +122,7 @@ const NEXT_STATUSES: Record<TicketStatus, TicketStatus[]> = {
   />
 
   <!-- Panel -->
-  <aside class="fixed right-0 top-0 bottom-0 z-50 w-[480px] bg-white shadow-2xl flex flex-col border-l border-brand-200">
+  <aside class="fixed right-0 top-0 bottom-0 z-50 w-full md:w-[480px] bg-white shadow-2xl flex flex-col border-l border-brand-200">
 
     <!-- Panel header -->
     <div class="flex items-center gap-3 px-5 py-4 border-b border-brand-100 shrink-0">

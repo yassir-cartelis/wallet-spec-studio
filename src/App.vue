@@ -5,6 +5,48 @@ import { useValidation } from '@/composables/useValidation'
 import { STEPS } from '@/config/steps'
 import type { StepId } from '@/types/spec'
 
+// ── Import feedback toast ─────────────────────────────────────────────────────
+type Toast = { message: string; type: 'success' | 'error' }
+const toast = ref<Toast | null>(null)
+let toastTimer: ReturnType<typeof setTimeout>
+
+function showToast(message: string, type: Toast['type']) {
+  clearTimeout(toastTimer)
+  toast.value = { message, type }
+  toastTimer = setTimeout(() => (toast.value = null), 3000)
+}
+
+// ── JSON import ───────────────────────────────────────────────────────────────
+const fileInput = ref<HTMLInputElement | null>(null)
+
+function triggerImport() {
+  fileInput.value?.click()
+}
+
+function onFileSelected(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!fileInput.value) return
+  fileInput.value.value = '' // reset so same file can be re-imported
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    try {
+      const raw = JSON.parse(ev.target?.result as string)
+      const result = store.importSpec(raw)
+      if (result.ok) {
+        showToast(`✓ Spec importée — ${store.state.meta.projectName || file.name}`, 'success')
+        goTo('scope')
+      } else {
+        showToast(result.error ?? 'Erreur inconnue', 'error')
+      }
+    } catch {
+      showToast('Fichier JSON invalide ou corrompu.', 'error')
+    }
+  }
+  reader.readAsText(file)
+}
+
 // Step components
 import StepScope from '@/steps/StepScope.vue'
 import StepIdentity from '@/steps/StepIdentity.vue'
@@ -56,6 +98,20 @@ const scoreColor = computed(() => {
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col">
 
+    <!-- Toast -->
+    <transition name="toast">
+      <div
+        v-if="toast"
+        class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium pointer-events-none"
+        :class="toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'"
+      >
+        {{ toast.message }}
+      </div>
+    </transition>
+
+    <!-- Hidden file input -->
+    <input ref="fileInput" type="file" accept=".json,application/json" class="hidden" @change="onFileSelected" />
+
     <!-- Top bar -->
     <header class="sticky top-0 z-20 bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4">
       <div class="flex items-center gap-2">
@@ -80,6 +136,15 @@ const scoreColor = computed(() => {
         </div>
         <span class="text-xs font-medium text-gray-500">{{ score }}%</span>
       </div>
+
+      <!-- Import button -->
+      <button
+        @click="triggerImport()"
+        class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:border-violet-400 hover:text-violet-600 transition-colors"
+        title="Importer un fichier JSON de spec"
+      >
+        ↑ Importer
+      </button>
 
       <button
         @click="store.reset()"

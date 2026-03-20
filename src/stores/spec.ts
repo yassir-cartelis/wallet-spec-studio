@@ -179,6 +179,59 @@ export const useSpecStore = defineStore('spec', () => {
     isDirty.value = false
   }
 
+  /**
+   * Import a (possibly partial) spec JSON.
+   * Deep-merges with DEFAULT_STATE so missing fields don't break anything.
+   * Ensures every array item has an id.
+   */
+  function importSpec(raw: unknown): { ok: boolean; error?: string } {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+      return { ok: false, error: 'Fichier invalide — objet JSON attendu.' }
+    }
+
+    try {
+      const incoming = raw as Partial<SpecState>
+      const base = structuredClone(DEFAULT_STATE)
+
+      // Deep merge top-level sections
+      if (incoming.meta) Object.assign(base.meta, incoming.meta)
+      if (incoming.entry) Object.assign(base.entry, incoming.entry)
+      if (incoming.security) Object.assign(base.security, incoming.security)
+
+      // Arrays — ensure each item has an id
+      if (Array.isArray(incoming.campaigns) && incoming.campaigns.length > 0) {
+        base.campaigns = incoming.campaigns.map((c) => ({ ...c, id: c.id || makeId() }))
+      }
+      if (Array.isArray(incoming.mapping)) {
+        base.mapping = incoming.mapping.map((f) => ({ ...f, id: f.id || makeId() }))
+      }
+      if (Array.isArray(incoming.notifications)) {
+        base.notifications = incoming.notifications.map((n) => ({ ...n, id: n.id || makeId() }))
+      }
+      if (Array.isArray(incoming.errors) && incoming.errors.length > 0) {
+        base.errors = incoming.errors.map((e) => ({ ...e, id: e.id || makeId() }))
+      }
+
+      // Flows — merge each flow individually
+      if (incoming.flows) {
+        for (const key of ['create', 'update', 'optin', 'anonymize'] as const) {
+          if (incoming.flows[key]) {
+            Object.assign(base.flows[key], incoming.flows[key])
+            // Validate that field ids still exist in mapping
+            const validIds = new Set(base.mapping.map((f) => f.id))
+            base.flows[key].fields = (base.flows[key].fields ?? []).filter((id) => validIds.has(id))
+          }
+        }
+      }
+
+      state.value = base
+      isDirty.value = true
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, error: `Erreur lors de l'import : ${(e as Error).message}` }
+    }
+  }
+
   return {
     state,
     isDirty,
@@ -199,5 +252,6 @@ export const useSpecStore = defineStore('spec', () => {
     removeError,
     reset,
     markClean,
+    importSpec,
   }
 })

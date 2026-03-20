@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wallet Workshop Studio — Atelier & Spec Generator</title>
+
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    .bg-grid{
+      background-size:20px 20px;
+      background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
+    }
+    .code-scroll::-webkit-scrollbar{ height:6px; width:6px;}
+    .code-scroll::-webkit-scrollbar-thumb{ background:#334155; border-radius:999px;}
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .stroke-anim{ stroke-dasharray: 900; stroke-dashoffset: 900; animation: dash 1.6s ease forwards; }
+    @keyframes dash { to { stroke-dashoffset: 0; } }
+  </style>
+</head>
+
+<body class="bg-slate-100 bg-grid min-h-screen">
+<div id="app" class="max-w-[1680px] mx-auto p-6">
+  <!-- Top bar -->
+  <header class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6">
+    <div class="flex items-center gap-4">
+      <div class="rounded-xl p-3 text-white bg-slate-900 shadow-sm">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M7 7h10v3H7V7Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M5 10h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V10Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 10V6a3 3 0 0 1 6 0v4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Wallet Workshop Studio</h1>
+        <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold italic">Atelier collaboratif → Spec technique exportable</p>
+      </div>
+      <span v-if="dirty" class="ml-2 text-[11px] px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-semibold">
+        Modifs non exportées
+      </span>
+    </div>
+
+    <div class="flex flex-wrap gap-2 items-center">
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] font-bold text-slate-500 uppercase">Rôle</span>
+        <select v-model="state.collab.role" class="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-slate-50">
+          <option value="product">Métier / Produit</option>
+          <option value="tech">Tech / Intégration</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
+      <button @click="openImportExport('export')"
+              class="px-4 py-2 rounded-xl text-sm font-bold bg-slate-900 text-white hover:bg-slate-800 transition">
+        Export JSON
+      </button>
+      <button @click="openImportExport('import')"
+              class="px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 bg-white hover:bg-slate-50 transition">
+        Import JSON
+      </button>
+      <button @click="downloadSpec('md')"
+              class="px-4 py-2 rounded-xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 transition">
+        Export Spec (MD)
+      </button>
+      <button @click="downloadSpec('html')"
+              class="px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 bg-white hover:bg-slate-50 transition">
+        Export Spec (HTML)
+      </button>
+      <button @click="printSpec"
+              class="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition">
+        Imprimer / PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- Layout -->
+  <div class="grid grid-cols-12 gap-6">
+
+    <!-- LEFT -->
+    <aside class="col-span-12 xl:col-span-4 space-y-6">
+      <!-- Workshop progress -->
+      <section class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Parcours Atelier</div>
+            <div class="text-sm font-extrabold text-slate-900 mt-1">{{ steps[currentStep-1].title }}</div>
+          </div>
+          <div class="text-[11px] font-bold text-slate-500">
+            Étape <span class="text-slate-900">{{ currentStep }}</span>/{{ steps.length }}
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <div class="flex items-center gap-2">
+            <div v-for="n in steps.length" :key="n" class="flex items-center gap-2 flex-1">
+              <button @click="goStep(n)"
+                      :class="[
+                        'w-9 h-9 rounded-full font-extrabold text-sm transition border',
+                        n===currentStep ? 'bg-blue-600 text-white border-blue-600' :
+                        n<currentStep ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' :
+                        'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
+                      ]">
+                {{ n }}
+              </button>
+              <div v-if="n<steps.length" class="h-[2px] flex-1 rounded-full"
+                   :class="n<currentStep ? 'bg-emerald-300' : 'bg-slate-200'"></div>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button @click="prevStep"
+                    class="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 font-bold">
+              ← Retour
+            </button>
+            <button @click="nextStep"
+                    class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold">
+              Continuer →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Validation / readiness -->
+      <section class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-extrabold text-slate-900">Complétude</div>
+          <span :class="[
+              'text-[11px] font-extrabold px-2 py-1 rounded-full border',
+              readiness.score>=90 ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+              readiness.score>=70 ? 'bg-amber-50 border-amber-200 text-amber-700' :
+              'bg-rose-50 border-rose-200 text-rose-700'
+            ]">
+            {{ readiness.score }}%
+          </span>
+        </div>
+
+        <div class="mt-3 space-y-2">
+          <div class="text-[12px] text-slate-600">
+            <span class="font-bold">Bloquants :</span> {{ readiness.blockers.length }}
+            · <span class="font-bold">Recommandés :</span> {{ readiness.warnings.length }}
+          </div>
+
+          <div v-if="readiness.blockers.length" class="p-3 rounded-xl border border-rose-200 bg-rose-50">
+            <div class="text-[11px] font-extrabold text-rose-700 uppercase tracking-widest">À compléter</div>
+            <ul class="mt-2 space-y-1 text-sm text-rose-800">
+              <li v-for="(b,i) in readiness.blockers" :key="i" class="flex gap-2">
+                <span class="mt-1">•</span>
+                <span>{{ b }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="readiness.warnings.length" class="p-3 rounded-xl border border-amber-200 bg-amber-50">
+            <div class="text-[11px] font-extrabold text-amber-700 uppercase tracking-widest">À challenger</div>
+            <ul class="mt-2 space-y-1 text-sm text-amber-800">
+              <li v-for="(w,i) in readiness.warnings" :key="i" class="flex gap-2">
+                <span class="mt-1">•</span>
+                <span>{{ w }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="!readiness.blockers.length && !readiness.warnings.length"
+               class="p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm font-semibold">
+            Tout est OK. Tu peux exporter une spec finalisée.
+          </div>
+        </div>
+      </section>
+
+      <!-- Step content -->
+      <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <!-- STEP 1 — Scope -->
+        <template v-if="currentStep===1">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900">1) Scope & Parcours</h2>
+              <p class="text-sm text-slate-600 mt-1">
+                Définir le cas d’usage, les canaux d’entrée et les campagnes (main/void…).
+              </p>
+            </div>
+            <button @click="addCommentAnchor('scope')"
+                    class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+              + Commentaire
+            </button>
+          </div>
+
+          <div class="mt-5 grid grid-cols-1 gap-4">
+            <div>
+              <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Nom du projet</label>
+              <input v-model="state.project.name"
+                     class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                     placeholder="Ex: Wallet — Suivi livraison / Fidélité / Ticketing…" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Objectif</label>
+              <textarea v-model="state.project.goal" rows="3"
+                        class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                        placeholder="Pourquoi ce wallet ? Quel bénéfice utilisateur et business ?"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Campagne principale</label>
+                <input v-model="state.campaigns.main"
+                       class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                       placeholder="Ex: fr_FR / main / loyalty" />
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Campagne void</label>
+                <input v-model="state.campaigns.void"
+                       class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                       placeholder="Ex: void / anonymized / empty" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Canaux d’encartement</label>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <TogglePill v-for="c in entryChannels" :key="c"
+                            :label="c"
+                            :active="state.project.channels.includes(c)"
+                            @toggle="toggleArray(state.project.channels, c)"/>
+              </div>
+              <p class="text-[12px] text-slate-500 mt-2">Ces choix pilotent l’URL d’entrée et les tags de tracking.</p>
+            </div>
+          </div>
+        </template>
+
+        <!-- STEP 2 — Identity & Entrypoints -->
+        <template v-else-if="currentStep===2">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900">2) Identity & Entrypoints</h2>
+              <p class="text-sm text-slate-600 mt-1">
+                Normaliser l’identifiant pivot + générer les URLs (DEV/PROD) + valider l’encoding.
+              </p>
+            </div>
+            <button @click="addCommentAnchor('identity')"
+                    class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+              + Commentaire
+            </button>
+          </div>
+
+          <div class="mt-5 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Account ID</label>
+                <input v-model="state.entry.accountId"
+                       class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                       placeholder="Ex: brand-account" />
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Base domain</label>
+                <input v-model="state.entry.baseDomain"
+                       class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                       placeholder="Ex: captainwallet.com" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Campaign ID (entrypoint)</label>
+                <input v-model="state.entry.campaignId"
+                       class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                       placeholder="Ex: main / fr_FR / loyalty" />
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Path</label>
+                <input v-model="state.entry.path"
+                       class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                       placeholder="/loyalty (ou /pass, /ticket…)" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Identifiant pivot (template)</label>
+              <input v-model="state.identity.pivotTemplate"
+                     class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                     placeholder="{{ contact.ID }} / {{ contact.NUMERO_COLIS }} / {{ user.id }} …" />
+              <div class="mt-2 flex flex-wrap gap-2">
+                <TogglePill label="Strict (no spaces)" :active="state.identity.rules.strict" @toggle="state.identity.rules.strict=!state.identity.rules.strict"/>
+                <TogglePill label="Uppercase" :active="state.identity.rules.uppercase" @toggle="state.identity.rules.uppercase=!state.identity.rules.uppercase"/>
+                <TogglePill label="Trim" :active="state.identity.rules.trim" @toggle="state.identity.rules.trim=!state.identity.rules.trim"/>
+                <TogglePill label="URL-encode" :active="state.identity.rules.urlEncode" @toggle="state.identity.rules.urlEncode=!state.identity.rules.urlEncode"/>
+              </div>
+              <p class="text-[12px] text-slate-500 mt-2">Ces règles seront mentionnées dans la spec et appliquées dans les exemples.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Timezone projet</label>
+                <select v-model="state.project.timezone"
+                        class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <option value="UTC">UTC</option>
+                  <option value="Europe/Paris">Europe/Paris</option>
+                  <option value="America/New_York">America/New_York</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Channel tag</label>
+                <input v-model="state.entry.channel"
+                       class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                       placeholder="email / web / qr / sms …" />
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Preview URL</div>
+                <button @click="copyToClipboard(entryUrl)"
+                        class="text-xs font-extrabold px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50">
+                  Copier
+                </button>
+              </div>
+              <div class="mt-2 mono text-sm text-blue-700 break-all">{{ entryUrl }}</div>
+              <div class="mt-2 text-[12px] text-slate-600">
+                Paramètres clés : <span class="mono">user[identifier]</span>, <span class="mono">channel</span>, <span class="mono">tag</span>, + signature/chiffrement si activé.
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- STEP 3 — Security -->
+        <template v-else-if="currentStep===3">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900">3) Security Policy</h2>
+              <p class="text-sm text-slate-600 mt-1">
+                Choisir SHA (signature) ou AES (chiffrement), définir la gestion des secrets et les tests.
+              </p>
+            </div>
+            <button @click="addCommentAnchor('security')"
+                    class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+              + Commentaire
+            </button>
+          </div>
+
+          <div class="mt-5 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button @click="state.security.mode='none'"
+                      :class="pickCard(state.security.mode==='none')">
+                <div class="flex items-center justify-between">
+                  <div class="font-extrabold">Aucune (non recommandé)</div>
+                  <span v-if="state.security.mode==='none'" class="text-xs font-extrabold text-blue-700">✓</span>
+                </div>
+                <p class="text-sm text-slate-600 mt-1">URL sans protection (à réserver aux environnements internes).</p>
+              </button>
+
+              <button @click="state.security.mode='sha256'"
+                      :class="pickCard(state.security.mode==='sha256')">
+                <div class="flex items-center justify-between">
+                  <div class="font-extrabold">SHA256 (Signature)</div>
+                  <span v-if="state.security.mode==='sha256'" class="text-xs font-extrabold text-blue-700">✓</span>
+                </div>
+                <p class="text-sm text-slate-600 mt-1">Signature sur pivot + SALT (ou secret) pour valider l’intégrité.</p>
+              </button>
+
+              <button @click="state.security.mode='aes256'"
+                      :class="pickCard(state.security.mode==='aes256')">
+                <div class="flex items-center justify-between">
+                  <div class="font-extrabold">AES-256-CBC (Chiffrement)</div>
+                  <span v-if="state.security.mode==='aes256'" class="text-xs font-extrabold text-blue-700">✓</span>
+                </div>
+                <p class="text-sm text-slate-600 mt-1">Chiffrement des paramètres sensibles (key/iv).</p>
+              </button>
+
+              <button @click="state.security.mode='custom'"
+                      :class="pickCard(state.security.mode==='custom')">
+                <div class="flex items-center justify-between">
+                  <div class="font-extrabold">Custom</div>
+                  <span v-if="state.security.mode==='custom'" class="text-xs font-extrabold text-blue-700">✓</span>
+                </div>
+                <p class="text-sm text-slate-600 mt-1">Décrire une stratégie alternative (HMAC, JWT…).</p>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Gestion des secrets</label>
+                <select v-model="state.security.secretHandling"
+                        class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <option value="vault">Vault / Secret manager</option>
+                  <option value="env">Variables d’environnement</option>
+                  <option value="manual">Manuel (non recommandé)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Rotation</label>
+                <select v-model="state.security.rotation"
+                        class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <option value="none">Aucune</option>
+                  <option value="quarterly">Trimestrielle</option>
+                  <option value="monthly">Mensuelle</option>
+                </select>
+              </div>
+            </div>
+
+            <div v-if="state.security.mode==='custom'" class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+              <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Description stratégie custom</label>
+              <textarea v-model="state.security.customNotes" rows="3"
+                        class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-white"></textarea>
+            </div>
+
+            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+              <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Exemples (spec)</div>
+              <div class="mt-2 grid grid-cols-1 gap-3">
+                <div class="p-3 rounded-xl bg-slate-900 text-slate-100 mono text-xs code-scroll overflow-x-auto">
+                  {{ securityExample }}
+                </div>
+                <div class="text-[12px] text-slate-600">
+                  Cet exemple est volontairement “pseudo-technique” (pas de secrets réels). La spec finale décrit précisément le calcul attendu.
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- STEP 4 — Data contract & mapping -->
+        <template v-else-if="currentStep===4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900">4) Data Contract & Mapping</h2>
+              <p class="text-sm text-slate-600 mt-1">
+                Ajouter des champs, les mapper, et générer les payloads d’update.
+              </p>
+            </div>
+            <button @click="addCommentAnchor('mapping')"
+                    class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+              + Commentaire
+            </button>
+          </div>
+
+          <div class="mt-5 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Stratégie d’update</label>
+                <select v-model="state.data.updatePolicy"
+                        class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <option value="push_changed">Push uniquement si changement</option>
+                  <option value="push_all">Push complet (non recommandé)</option>
+                  <option value="batch_only">Batch uniquement (SFTP)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Opt-in gating</label>
+                <select v-model="state.data.optinGate"
+                        class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <option value="required">Obligatoire (ne push que si opt-in)</option>
+                  <option value="best_effort">Best effort</option>
+                  <option value="disabled">Désactivé (à justifier)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Mapping des champs</div>
+              <div class="flex gap-2">
+                <button @click="addMappingRow"
+                        class="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-extrabold hover:bg-blue-700">
+                  + Ajouter un champ
+                </button>
+                <button @click="normalizeMapping"
+                        class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-extrabold hover:bg-slate-50">
+                  Normaliser
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div v-for="(row, idx) in state.data.mapping" :key="row.id"
+                   class="p-3 rounded-2xl border border-slate-200 bg-slate-50">
+                <div class="grid grid-cols-12 gap-2 items-center">
+                  <div class="col-span-12 sm:col-span-5">
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Source field</label>
+                    <input v-model="row.source"
+                           class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
+                           placeholder="Ex: STATUT / delivery_status / order.state …" />
+                  </div>
+
+                  <div class="col-span-12 sm:col-span-5">
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Wallet field</label>
+                    <input v-model="row.wallet"
+                           class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm mono"
+                           placeholder="Ex: user.status / metadatas.deliveryStatus …" />
+                  </div>
+
+                  <div class="col-span-10 sm:col-span-2">
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Type</label>
+                    <select v-model="row.type"
+                            class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm">
+                      <option value="string">string</option>
+                      <option value="number">number</option>
+                      <option value="boolean">boolean</option>
+                      <option value="date_iso">date_iso</option>
+                      <option value="enum">enum</option>
+                      <option value="object">object</option>
+                    </select>
+                  </div>
+
+                  <div class="col-span-12 sm:col-span-10">
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Règles / transformation</label>
+                    <input v-model="row.rule"
+                           class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
+                           placeholder="Ex: map status codes; format date; trim; uppercase; fallback …" />
+                  </div>
+
+                  <div class="col-span-12 sm:col-span-2 flex justify-end gap-2">
+                    <button @click="addCommentAnchor('mapping:'+row.id)"
+                            class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-extrabold hover:bg-slate-50">
+                      💬
+                    </button>
+                    <button @click="removeMappingRow(idx)"
+                            class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-extrabold hover:bg-rose-700">
+                      Suppr
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl border border-slate-200 bg-white">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Payload Update Preview</div>
+                <div class="flex gap-2">
+                  <button @click="activePayloadTab='update'"
+                          :class="tabClass(activePayloadTab==='update')">Update</button>
+                  <button @click="activePayloadTab='optin'"
+                          :class="tabClass(activePayloadTab==='optin')">Opt-in</button>
+                  <button @click="activePayloadTab='merge'"
+                          :class="tabClass(activePayloadTab==='merge')">Merge</button>
+                  <button @click="activePayloadTab='anonymize'"
+                          :class="tabClass(activePayloadTab==='anonymize')">Anonymize</button>
+                </div>
+              </div>
+
+              <div class="mt-3 p-3 rounded-xl bg-slate-900 text-slate-100 mono text-xs code-scroll overflow-x-auto">
+                <pre>{{ payloadPreview }}</pre>
+              </div>
+              <div class="text-[12px] text-slate-600 mt-2">
+                Les exemples reprennent la timezone projet et l’identifiant pivot. Les champs mapping alimentent <span class="mono">metadatas</span>.
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- STEP 5 — Flows & Interfaces -->
+        <template v-else-if="currentStep===5">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900">5) Flows & Interfaces</h2>
+              <p class="text-sm text-slate-600 mt-1">
+                Choisir les flux (API / SFTP), définir endpoints, timeouts, retries, auth.
+              </p>
+            </div>
+            <button @click="addCommentAnchor('flows')"
+                    class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+              + Commentaire
+            </button>
+          </div>
+
+          <div class="mt-5 space-y-4">
+            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+              <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Modes d’intégration</div>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <TogglePill label="Mode API" :active="state.integrations.api.enabled" @toggle="state.integrations.api.enabled=!state.integrations.api.enabled"/>
+                <TogglePill label="Mode SFTP" :active="state.integrations.sftp.enabled" @toggle="state.integrations.sftp.enabled=!state.integrations.sftp.enabled"/>
+                <TogglePill label="Opt-in realtime" :active="state.flows.optinRealtime" @toggle="state.flows.optinRealtime=!state.flows.optinRealtime"/>
+                <TogglePill label="Merge" :active="state.flows.merge" @toggle="state.flows.merge=!state.flows.merge"/>
+                <TogglePill label="Anonymisation" :active="state.flows.anonymize" @toggle="state.flows.anonymize=!state.flows.anonymize"/>
+              </div>
+              <p class="text-[12px] text-slate-600 mt-2">Le diagramme live à droite se reconfigure selon ces choix.</p>
+            </div>
+
+            <div v-if="state.integrations.api.enabled" class="p-4 rounded-2xl border border-slate-200 bg-white">
+              <div class="flex items-center justify-between">
+                <div class="text-sm font-extrabold text-slate-900">API</div>
+                <button @click="addCommentAnchor('api')"
+                        class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+                  💬
+                </button>
+              </div>
+
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Auth</label>
+                  <select v-model="state.integrations.api.auth"
+                          class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+                    <option value="oauth_token">OAuth token</option>
+                    <option value="api_key">API Key</option>
+                    <option value="mTLS">mTLS</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Cache token (sec)</label>
+                  <input v-model.number="state.integrations.api.tokenTtl"
+                         type="number"
+                         class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"/>
+                </div>
+              </div>
+
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Base URL</label>
+                  <input v-model="state.integrations.api.baseUrl"
+                         class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                         placeholder="https://api.vendor.tld" />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Timeout (ms)</label>
+                  <input v-model.number="state.integrations.api.timeoutMs"
+                         type="number"
+                         class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"/>
+                </div>
+              </div>
+
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Retries</label>
+                  <input v-model.number="state.integrations.api.retries"
+                         type="number"
+                         class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"/>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Backoff</label>
+                  <select v-model="state.integrations.api.backoff"
+                          class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+                    <option value="fixed">Fixed</option>
+                    <option value="exponential">Exponential</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="mt-4 grid grid-cols-1 gap-3">
+                <EndpointRow label="Update endpoint" v-model="state.integrations.api.endpoints.update" placeholder="/pass-owners/{userId} (PUT)"/>
+                <EndpointRow label="Opt-in webhook" v-model="state.integrations.api.endpoints.optin" placeholder="/hooks/optin (POST)"/>
+                <EndpointRow label="Merge webhook" v-model="state.integrations.api.endpoints.merge" placeholder="/hooks/merge (POST)"/>
+                <EndpointRow label="Anonymize endpoint" v-model="state.integrations.api.endpoints.anonymize" placeholder="/delete-pass-owners (POST)"/>
+              </div>
+            </div>
+
+            <div v-if="state.integrations.sftp.enabled" class="p-4 rounded-2xl border border-slate-200 bg-white">
+              <div class="flex items-center justify-between">
+                <div class="text-sm font-extrabold text-slate-900">SFTP (Batch)</div>
+                <button @click="addCommentAnchor('sftp')"
+                        class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+                  💬
+                </button>
+              </div>
+
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Host</label>
+                  <input v-model="state.integrations.sftp.host"
+                         class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                         placeholder="sftp.vendor.tld"/>
+                </div>
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Port</label>
+                  <input v-model.number="state.integrations.sftp.port"
+                         type="number"
+                         class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"/>
+                </div>
+              </div>
+
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">ToWallet dir</label>
+                  <input v-model="state.integrations.sftp.toWalletDir"
+                         class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                         placeholder="/ToWallet"/>
+                </div>
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">FromWallet dir</label>
+                  <input v-model="state.integrations.sftp.fromWalletDir"
+                         class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                         placeholder="/FromWallet"/>
+                </div>
+              </div>
+
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">Fréquence</label>
+                  <select v-model="state.integrations.sftp.frequency"
+                          class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+                    <option value="hourly">Hourly</option>
+                    <option value="daily">Daily</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <div v-if="state.integrations.sftp.frequency==='custom'">
+                  <label class="block text-xs font-extrabold text-slate-500 uppercase tracking-widest">CRON / notes</label>
+                  <input v-model="state.integrations.sftp.customSchedule"
+                         class="mt-1 w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50"
+                         placeholder="0 */6 * * * (ex)"/>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- STEP 6 — Notifications -->
+        <template v-else-if="currentStep===6">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900">6) Notifications & Messages</h2>
+              <p class="text-sm text-slate-600 mt-1">
+                Matrice triggers → messages, validations, limites, et conventions.
+              </p>
+            </div>
+            <button @click="addCommentAnchor('notifs')"
+                    class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+              + Commentaire
+            </button>
+          </div>
+
+          <div class="mt-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Triggers & messages</div>
+              <button @click="addNotification"
+                      class="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-extrabold hover:bg-blue-700">
+                + Ajouter un trigger
+              </button>
+            </div>
+
+            <div class="space-y-2">
+              <div v-for="(n, idx) in state.notifications" :key="n.id"
+                   class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+                <div class="grid grid-cols-12 gap-2 items-center">
+                  <div class="col-span-12 sm:col-span-4">
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Trigger</label>
+                    <input v-model="n.trigger"
+                           class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
+                           placeholder="Ex: Installation / Changement statut / Reminder …"/>
+                  </div>
+
+                  <div class="col-span-12 sm:col-span-7">
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">
+                      Message (≤ {{ state.notificationsPolicy.maxChars }} chars, no link)
+                    </label>
+                    <textarea v-model="n.message" rows="2"
+                              class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
+                              :maxlength="state.notificationsPolicy.maxChars"></textarea>
+                    <div class="mt-1 flex items-center justify-between text-[11px]">
+                      <span :class="notifValidation(n).ok ? 'text-emerald-700' : 'text-rose-700'" class="font-bold">
+                        {{ notifValidation(n).label }}
+                      </span>
+                      <span class="text-slate-500 font-semibold">{{ (n.message||'').length }}/{{ state.notificationsPolicy.maxChars }}</span>
+                    </div>
+                  </div>
+
+                  <div class="col-span-12 sm:col-span-1 flex justify-end gap-2">
+                    <button @click="addCommentAnchor('notif:'+n.id)"
+                            class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-extrabold hover:bg-slate-50">
+                      💬
+                    </button>
+                    <button @click="removeNotification(idx)"
+                            class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-extrabold hover:bg-rose-700">
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl border border-slate-200 bg-white">
+              <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Règles</div>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <TogglePill label="No link"
+                            :active="state.notificationsPolicy.noLink"
+                            @toggle="state.notificationsPolicy.noLink=!state.notificationsPolicy.noLink"/>
+                <TogglePill label="Emoji OK"
+                            :active="state.notificationsPolicy.emojiOk"
+                            @toggle="state.notificationsPolicy.emojiOk=!state.notificationsPolicy.emojiOk"/>
+                <TogglePill label="Template variables"
+                            :active="state.notificationsPolicy.allowVars"
+                            @toggle="state.notificationsPolicy.allowVars=!state.notificationsPolicy.allowVars"/>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- STEP 7 — Errors & Observability -->
+        <template v-else-if="currentStep===7">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900">7) Errors & Observability</h2>
+              <p class="text-sm text-slate-600 mt-1">
+                Taxonomie erreurs, playbook, métriques, alerting.
+              </p>
+            </div>
+            <button @click="addCommentAnchor('errors')"
+                    class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+              + Commentaire
+            </button>
+          </div>
+
+          <div class="mt-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Codes d’erreurs</div>
+              <button @click="addError"
+                      class="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-extrabold hover:bg-blue-700">
+                + Ajouter
+              </button>
+            </div>
+
+            <div class="space-y-2">
+              <div v-for="(e, idx) in state.errors" :key="e.id"
+                   class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+                <div class="grid grid-cols-12 gap-2 items-center">
+                  <div class="col-span-12 sm:col-span-2">
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Code</label>
+                    <input v-model="e.code" class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm mono"/>
+                  </div>
+
+                  <div class="col-span-12 sm:col-span-6">
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Message (utilisateur / UI)</label>
+                    <input v-model="e.message" class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"/>
+                  </div>
+
+                  <div class="col-span-12 sm:col-span-3">
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Cause / Remediation</label>
+                    <input v-model="e.remediation" class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm"
+                           placeholder="Ex: vérifier pivot; retry; fallback…"/>
+                  </div>
+
+                  <div class="col-span-12 sm:col-span-1 flex justify-end gap-2">
+                    <button @click="addCommentAnchor('err:'+e.id)"
+                            class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-extrabold hover:bg-slate-50">
+                      💬
+                    </button>
+                    <button @click="removeError(idx)"
+                            class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-extrabold hover:bg-rose-700">
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl border border-slate-200 bg-white">
+              <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Métriques recommandées</div>
+              <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-700">
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">Install rate (opt-in / exposure)</div>
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">Update latency p95</div>
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">Error rate par code</div>
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">Drop (opt-in mais no updates)</div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- STEP 8 — Export & Final -->
+        <template v-else-if="currentStep===8">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900">8) Export & Decision Log</h2>
+              <p class="text-sm text-slate-600 mt-1">
+                Recap décisions, checklist, et génération du livrable.
+              </p>
+            </div>
+            <button @click="addCommentAnchor('export')"
+                    class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">
+              + Commentaire
+            </button>
+          </div>
+
+          <div class="mt-5 space-y-4">
+            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
+              <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Decision Log (auto)</div>
+              <div class="mt-2 space-y-2 text-sm">
+                <div class="p-3 rounded-xl bg-white border border-slate-200">
+                  <span class="font-extrabold">Security:</span> {{ state.security.mode.toUpperCase() }} ·
+                  <span class="font-extrabold">Secrets:</span> {{ state.security.secretHandling }} ·
+                  <span class="font-extrabold">Rotation:</span> {{ state.security.rotation }}
+                </div>
+                <div class="p-3 rounded-xl bg-white border border-slate-200">
+                  <span class="font-extrabold">Integration:</span>
+                  <span v-if="state.integrations.api.enabled">API</span><span v-if="state.integrations.api.enabled && state.integrations.sftp.enabled"> + </span><span v-if="state.integrations.sftp.enabled">SFTP</span>
+                  · <span class="font-extrabold">Timezone:</span> {{ state.project.timezone }}
+                  · <span class="font-extrabold">Update policy:</span> {{ state.data.updatePolicy }}
+                </div>
+                <div class="p-3 rounded-xl bg-white border border-slate-200">
+                  <span class="font-extrabold">Flows:</span>
+                  optin={{ state.flows.optinRealtime ? 'on' : 'off' }},
+                  merge={{ state.flows.merge ? 'on' : 'off' }},
+                  anonymize={{ state.flows.anonymize ? 'on' : 'off' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl border border-slate-200 bg-white">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Spec preview (Markdown)</div>
+                <button @click="copyToClipboard(specMarkdown)"
+                        class="text-xs font-extrabold px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50">
+                  Copier
+                </button>
+              </div>
+              <div class="mt-3 p-3 rounded-xl bg-slate-900 text-slate-100 mono text-xs code-scroll overflow-x-auto max-h-[340px]">
+                <pre>{{ specMarkdown }}</pre>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button @click="openImportExport('export')"
+                      class="px-4 py-3 rounded-xl bg-slate-900 text-white font-extrabold hover:bg-slate-800">
+                Export JSON
+              </button>
+              <button @click="downloadSpec('md')"
+                      class="px-4 py-3 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700">
+                Export Spec (MD)
+              </button>
+              <button @click="printSpec"
+                      class="px-4 py-3 rounded-xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-700">
+                Print / PDF
+              </button>
+            </div>
+          </div>
+        </template>
+      </section>
+
+      <!-- Comments -->
+      <section class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-extrabold text-slate-900">Commentaires (collab)</div>
+            <div class="text-[12px] text-slate-500">Ancrés sur une section ou un champ.</div>
+          </div>
+          <button @click="addCommentAnchor('general')"
+                  class="text-xs font-extrabold px-3 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800">
+            + Ajouter
+          </button>
+        </div>
+
+        <div class="mt-4 space-y-2 max-h-[360px] overflow-y-auto code-scroll pr-1">
+          <div v-if="!state.collab.comments.length" class="text-sm text-slate-500 italic">
+            Aucun commentaire pour l’instant.
+          </div>
+
+          <div v-for="c in state.collab.comments.slice().reverse()" :key="c.id"
+               class="p-3 rounded-2xl border border-slate-200 bg-slate-50">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">
+                {{ c.anchor }}
+              </div>
+              <button @click="removeComment(c.id)"
+                      class="text-xs font-extrabold px-2 py-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-50">
+                Suppr
+              </button>
+            </div>
+            <div class="mt-1 text-sm text-slate-900 font-semibold">{{ c.author }} · <span class="text-slate-500 font-medium">{{ formatTs(c.ts) }}</span></div>
+            <div class="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{{ c.text }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Version history -->
+      <section class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-extrabold text-slate-900">Historique</div>
+            <div class="text-[12px] text-slate-500">Snapshots locaux (pour review / rollback).</div>
+          </div>
+          <button @click="snapshot()"
+                  class="text-xs font-extrabold px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50">
+            + Snapshot
+          </button>
+        </div>
+
+        <div class="mt-3 space-y-2 max-h-[260px] overflow-y-auto code-scroll pr-1">
+          <div v-if="!state.collab.history.length" class="text-sm text-slate-500 italic">Aucun snapshot.</div>
+          <div v-for="h in state.collab.history.slice().reverse()" :key="h.id"
+               class="p-3 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-2">
+            <div>
+              <div class="text-sm font-extrabold text-slate-900">{{ h.label }}</div>
+              <div class="text-[11px] text-slate-500 font-semibold">{{ formatTs(h.ts) }}</div>
+            </div>
+            <div class="flex gap-2">
+              <button @click="restoreSnapshot(h.id)"
+                      class="text-xs font-extrabold px-3 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">
+                Restore
+              </button>
+              <button @click="deleteSnapshot(h.id)"
+                      class="text-xs font-extrabold px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50">
+                Suppr
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- RIGHT -->
+    <main class="col-span-12 xl:col-span-8 space-y-6">
+      <!-- Live architecture -->
+      <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Architecture live</div>
+            <h3 class="text-lg font-extrabold text-slate-900 mt-1">Flux & composants (reconfigurable)</h3>
+            <p class="text-sm text-slate-600 mt-1">
+              Le diagramme s’adapte aux choix API/SFTP, aux flux opt-in/merge/anonymize, et à la politique de sécurité.
+            </p>
+          </div>
+
+          <div class="flex flex-col items-end gap-2">
+            <div class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">Mode</div>
+            <div class="flex gap-2">
+              <span class="text-[11px] px-2 py-1 rounded-full border font-extrabold"
+                    :class="state.integrations.api.enabled ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-slate-50 border-slate-200 text-slate-500'">API</span>
+              <span class="text-[11px] px-2 py-1 rounded-full border font-extrabold"
+                    :class="state.integrations.sftp.enabled ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-slate-50 border-slate-200 text-slate-500'">SFTP</span>
+              <span class="text-[11px] px-2 py-1 rounded-full border font-extrabold"
+                    :class="state.security.mode!=='none' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500'">SEC</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <svg viewBox="0 0 1040 420" class="w-full">
+            <defs>
+              <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#0f172a"></path>
+              </marker>
+              <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"></path>
+              </marker>
+              <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#7c3aed"></path>
+              </marker>
+            </defs>
+
+            <!-- Nodes -->
+            <!-- Brevo / Channel -->
+            <g>
+              <rect x="40" y="70" width="220" height="100" rx="18" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+              <text x="150" y="108" text-anchor="middle" style="font-weight:800; fill:#0f172a;">CHANNEL / CRM</text>
+              <text x="150" y="132" text-anchor="middle" style="font-size:12px; fill:#64748b;">Email · Web · QR · SMS</text>
+              <text x="150" y="154" text-anchor="middle" style="font-size:11px; fill:#94a3b8;">Entrypoint URL</text>
+            </g>
+
+            <!-- CW -->
+            <g>
+              <rect x="410" y="55" width="260" height="130" rx="18" fill="white" stroke="#2563eb" stroke-width="2.5"/>
+              <text x="540" y="95" text-anchor="middle" style="font-weight:900; fill:#2563eb;">WALLET PLATFORM</text>
+              <text x="540" y="120" text-anchor="middle" style="font-size:12px; fill:#64748b;">Campaigns · Pass owner · Push</text>
+              <text x="540" y="145" text-anchor="middle" style="font-size:11px; fill:#94a3b8;">
+                Security: {{ state.security.mode.toUpperCase() }}
+              </text>
+              <text x="540" y="167" text-anchor="middle" style="font-size:11px; fill:#94a3b8;">
+                TZ: {{ state.project.timezone }}
+              </text>
+            </g>
+
+            <!-- Brand IS / Backend -->
+            <g>
+              <rect x="780" y="70" width="220" height="100" rx="18" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+              <text x="890" y="108" text-anchor="middle" style="font-weight:800; fill:#0f172a;">BRAND SYSTEM</text>
+              <text x="890" y="132" text-anchor="middle" style="font-size:12px; fill:#64748b;">Source of truth</text>
+              <text x="890" y="154" text-anchor="middle" style="font-size:11px; fill:#94a3b8;">Status · Dates · Data</text>
+            </g>
+
+            <!-- Opt-in -->
+            <g v-if="state.flows.optinRealtime">
+              <rect x="410" y="235" width="260" height="80" rx="18" fill="#ecfeff" stroke="#06b6d4" stroke-width="2"/>
+              <text x="540" y="268" text-anchor="middle" style="font-weight:900; fill:#0e7490;">OPT-IN REALTIME</text>
+              <text x="540" y="292" text-anchor="middle" style="font-size:11px; fill:#0f172a;">install_status + event_date</text>
+            </g>
+
+            <!-- Batch SFTP -->
+            <g v-if="state.integrations.sftp.enabled">
+              <rect x="780" y="235" width="220" height="80" rx="18" fill="#faf5ff" stroke="#7c3aed" stroke-width="2"/>
+              <text x="890" y="268" text-anchor="middle" style="font-weight:900; fill:#7c3aed;">SFTP BATCH</text>
+              <text x="890" y="292" text-anchor="middle" style="font-size:11px; fill:#0f172a;">
+                {{ state.integrations.sftp.toWalletDir }} / {{ state.integrations.sftp.fromWalletDir }}
+              </text>
+            </g>
+
+            <!-- Merge -->
+            <g v-if="state.flows.merge">
+              <rect x="40" y="235" width="220" height="80" rx="18" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+              <text x="150" y="268" text-anchor="middle" style="font-weight:900; fill:#16a34a;">MERGE</text>
+              <text x="150" y="292" text-anchor="middle" style="font-size:11px; fill:#0f172a;">old_user_id → new_user_id</text>
+            </g>
+
+            <!-- Anonymize -->
+            <g v-if="state.flows.anonymize">
+              <rect x="410" y="330" width="260" height="70" rx="18" fill="#fff1f2" stroke="#e11d48" stroke-width="2"/>
+              <text x="540" y="360" text-anchor="middle" style="font-weight:900; fill:#e11d48;">ANONYMIZE / DELETE</text>
+              <text x="540" y="382" text-anchor="middle" style="font-size:11px; fill:#0f172a;">void campaign + SLA</text>
+            </g>
+
+            <!-- Edges -->
+            <!-- Channel → CW -->
+            <path d="M260 120 L410 120" stroke="#0f172a" stroke-width="2.5" fill="none" marker-end="url(#arrow)" class="stroke-anim"/>
+
+            <!-- CW ↔ Brand (API) -->
+            <path v-if="state.integrations.api.enabled"
+                  d="M670 110 L780 110" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arrowBlue)" class="stroke-anim"/>
+            <path v-if="state.integrations.api.enabled"
+                  d="M780 130 L670 130" stroke="#2563eb" stroke-width="3" fill="none" marker-end="url(#arrowBlue)" class="stroke-anim"/>
+
+            <!-- CW → Opt-in -->
+            <path v-if="state.flows.optinRealtime"
+                  d="M540 185 L540 235" stroke="#06b6d4" stroke-width="3" fill="none" marker-end="url(#arrow)" class="stroke-anim"/>
+
+            <!-- Brand → SFTP -->
+            <path v-if="state.integrations.sftp.enabled"
+                  d="M890 170 L890 235" stroke="#7c3aed" stroke-width="3" fill="none" marker-end="url(#arrowPurple)" class="stroke-anim"/>
+
+            <!-- Merge → CW -->
+            <path v-if="state.flows.merge"
+                  d="M260 275 L410 275" stroke="#16a34a" stroke-width="3" fill="none" marker-end="url(#arrow)" class="stroke-anim"/>
+
+            <!-- CW → Anonymize -->
+            <path v-if="state.flows.anonymize"
+                  d="M540 315 L540 330" stroke="#e11d48" stroke-width="3" fill="none" marker-end="url(#arrow)" class="stroke-anim"/>
+          </svg>
+        </div>
+      </section>
+
+      <!-- Technical tabs -->
+      <section class="bg-slate-900 rounded-2xl shadow-lg overflow-hidden">
+        <div class="flex border-b border-slate-800 overflow-x-auto code-scroll">
+          <button v-for="t in techTabs" :key="t.id"
+                  @click="activeTechTab=t.id"
+                  :class="[
+                    'px-6 py-3 text-[11px] font-extrabold transition whitespace-nowrap',
+                    activeTechTab===t.id ? 'text-white border-b-2 border-blue-500 bg-slate-800' : 'text-slate-400 hover:text-slate-200'
+                  ]">
+            {{ t.label }}
+          </button>
+        </div>
+
+        <div class="p-6">
+          <!-- Entrypoints -->
+          <div v-if="activeTechTab==='entrypoints'" class="space-y-3">
+            <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Entrypoints</div>
+            <div class="p-4 rounded-xl bg-slate-800 border border-slate-700 mono text-sm text-blue-300 break-all">
+              {{ entryUrl }}
+            </div>
+            <div class="p-4 rounded-xl bg-slate-800 border border-slate-700 mono text-xs text-slate-200">
+              <pre>{{ entrypointSpecBlock }}</pre>
+            </div>
+          </div>
+
+          <!-- Schemas -->
+          <div v-else-if="activeTechTab==='schemas'" class="space-y-3">
+            <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Schemas</div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div class="p-4 rounded-xl bg-slate-800 border border-slate-700">
+                <div class="text-[11px] font-extrabold text-slate-300 uppercase tracking-widest">Update payload</div>
+                <div class="mt-2 mono text-xs text-slate-200 code-scroll overflow-x-auto">
+                  <pre>{{ schemaUpdate }}</pre>
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-slate-800 border border-slate-700">
+                <div class="text-[11px] font-extrabold text-slate-300 uppercase tracking-widest">Opt-in event</div>
+                <div class="mt-2 mono text-xs text-slate-200 code-scroll overflow-x-auto">
+                  <pre>{{ schemaOptin }}</pre>
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-slate-800 border border-slate-700">
+                <div class="text-[11px] font-extrabold text-slate-300 uppercase tracking-widest">Merge event</div>
+                <div class="mt-2 mono text-xs text-slate-200 code-scroll overflow-x-auto">
+                  <pre>{{ schemaMerge }}</pre>
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-slate-800 border border-slate-700">
+                <div class="text-[11px] font-extrabold text-slate-300 uppercase tracking-widest">Anonymize request</div>
+                <div class="mt-2 mono text-xs text-slate-200 code-scroll overflow-x-auto">
+                  <pre>{{ schemaAnonymize }}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interfaces -->
+          <div v-else-if="activeTechTab==='interfaces'" class="space-y-3">
+            <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Interfaces</div>
+            <div class="p-4 rounded-xl bg-slate-800 border border-slate-700 mono text-xs text-slate-200">
+              <pre>{{ interfacesBlock }}</pre>
+            </div>
+          </div>
+
+          <!-- Error playbook -->
+          <div v-else-if="activeTechTab==='errors'" class="space-y-3">
+            <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Error playbook</div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div v-for="e in state.errors" :key="e.id" class="p-4 rounded-xl bg-slate-800 border border-slate-700">
+                <div class="mono text-rose-300 font-extrabold">{{ e.code }}</div>
+                <div class="mt-2 text-slate-200 text-sm font-semibold">{{ e.message }}</div>
+                <div class="mt-1 text-slate-400 text-xs">{{ e.remediation || '—' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Config JSON -->
+          <div v-else-if="activeTechTab==='json'" class="space-y-3">
+            <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Config JSON</div>
+            <div class="p-4 rounded-xl bg-slate-800 border border-slate-700 mono text-xs text-slate-200 code-scroll overflow-x-auto max-h-[420px]">
+              <pre>{{ prettyJSON(state) }}</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal Import/Export -->
+  <div v-if="modal.open" class="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+        <div class="text-sm font-extrabold text-slate-900">
+          {{ modal.mode==='export' ? 'Exporter la configuration (JSON)' : 'Importer une configuration (JSON)' }}
+        </div>
+        <button @click="modal.open=false" class="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 font-extrabold">Fermer</button>
+      </div>
+
+      <div class="p-4">
+        <textarea v-model="modal.text" rows="14"
+                  class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 mono text-xs code-scroll"></textarea>
+
+        <div class="mt-3 flex items-center justify-between">
+          <div class="text-[12px] text-slate-500">
+            Tip : tu peux partager ce JSON à l’équipe pour reproduire l’atelier à l’identique.
+          </div>
+
+          <div class="flex gap-2">
+            <button v-if="modal.mode==='export'" @click="copyToClipboard(modal.text)"
+                    class="px-4 py-2 rounded-xl bg-slate-900 text-white font-extrabold hover:bg-slate-800">
+              Copier
+            </button>
+            <button v-if="modal.mode==='export'" @click="downloadJSON"
+                    class="px-4 py-2 rounded-xl border border-slate-200 bg-white font-extrabold hover:bg-slate-50">
+              Télécharger .json
+            </button>
+
+            <button v-if="modal.mode==='import'" @click="applyImport"
+                    class="px-4 py-2 rounded-xl bg-blue-600 text-white font-extrabold hover:bg-blue-700">
+              Importer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Print window (hidden) -->
+  <iframe id="printFrame" style="display:none;"></iframe>
+</div>
+
+<script>
+const { createApp, computed, watch, reactive } = Vue;
+
+function uid(prefix="id"){ return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16); }
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+createApp({
+  components:{
+    TogglePill:{
+      props:{ label:String, active:Boolean },
+      emits:["toggle"],
+      template:`
+        <button @click="$emit('toggle')"
+          :class="[
+            'px-3 py-2 rounded-full text-xs font-extrabold border transition',
+            active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+          ]">{{ label }}</button>
+      `
+    },
+    EndpointRow:{
+      props:{ label:String, modelValue:String, placeholder:String },
+      emits:["update:modelValue"],
+      template:`
+        <div class="grid grid-cols-12 gap-2 items-center">
+          <div class="col-span-12 sm:col-span-4">
+            <div class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest">{{ label }}</div>
+          </div>
+          <div class="col-span-12 sm:col-span-8">
+            <input :value="modelValue" @input="$emit('update:modelValue',$event.target.value)"
+                   class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 mono text-sm"
+                   :placeholder="placeholder"/>
+          </div>
+        </div>
+      `
+    }
+  },
+
+  setup(){
+    const STORAGE_KEY = "wallet_workshop_studio_v1";
+
+    const defaults = {
+      project:{
+        name:"",
+        goal:"",
+        timezone:"Europe/Paris",
+        channels:["email"]
+      },
+      campaigns:{ main:"main", void:"void" },
+      entry:{
+        accountId:"",
+        baseDomain:"captainwallet.com",
+        campaignId:"main",
+        path:"/wallet",
+        channel:"email",
+        tag:"workshop"
+      },
+      identity:{
+        pivotTemplate:"{{ contact.ID }}",
+        rules:{ strict:true, uppercase:false, trim:true, urlEncode:true }
+      },
+      security:{
+        mode:"sha256",           // none | sha256 | aes256 | custom
+        secretHandling:"vault",  // vault | env | manual
+        rotation:"quarterly",    // none | quarterly | monthly
+        customNotes:""
+      },
+      data:{
+        updatePolicy:"push_changed", // push_changed | push_all | batch_only
+        optinGate:"required",        // required | best_effort | disabled
+        mapping:[
+          { id: uid("map"), source:"ID", wallet:"user.identifier", type:"string", rule:"unique" },
+          { id: uid("map"), source:"STATUS", wallet:"user.status", type:"enum", rule:"map status codes" }
+        ]
+      },
+      flows:{
+        optinRealtime:true,
+        merge:false,
+        anonymize:true
+      },
+      integrations:{
+        api:{
+          enabled:true,
+          auth:"oauth_token",
+          tokenTtl:3600,
+          baseUrl:"",
+          timeoutMs:2000,
+          retries:2,
+          backoff:"fixed",
+          endpoints:{
+            update:"/pass-owners/{userId} (PUT)",
+            optin:"/hooks/optin (POST)",
+            merge:"/hooks/merge (POST)",
+            anonymize:"/delete-pass-owners (POST)"
+          }
+        },
+        sftp:{
+          enabled:false,
+          host:"",
+          port:22,
+          toWalletDir:"/ToWallet",
+          fromWalletDir:"/FromWallet",
+          frequency:"daily",
+          customSchedule:""
+        }
+      },
+      notificationsPolicy:{
+        maxChars:150,
+        noLink:true,
+        emojiOk:true,
+        allowVars:true
+      },
+      notifications:[
+        { id: uid("notif"), trigger:"Installation", message:"Votre wallet est prêt ! ✅" },
+        { id: uid("notif"), trigger:"Changement statut", message:"Mise à jour : votre statut a changé." }
+      ],
+      errors:[
+        { id: uid("err"), code:"ER0", message:"Identifiant inconnu.", remediation:"Vérifier pivot / mapping." },
+        { id: uid("err"), code:"ER1", message:"Identifiant manquant dans l’URL.", remediation:"Vérifier entrypoint + encodage." },
+        { id: uid("err"), code:"ER2", message:"Timeout API source.", remediation:"Retry/backoff + monitoring." },
+        { id: uid("err"), code:"ER3", message:"Erreur API source.", remediation:"Logs + circuit breaker si besoin." }
+      ],
+      collab:{
+        role:"product",
+        author:"Anonymous",
+        comments:[],
+        history:[]
+      }
+    };
+
+    // Load from localStorage
+    let loaded = null;
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) loaded = JSON.parse(raw);
+    }catch(e){}
+
+    const state = reactive(loaded ? Object.assign(deepClone(defaults), loaded) : deepClone(defaults));
+
+    // Keep author in sync with role (simple default)
+    watch(() => state.collab.role, (r)=>{
+      if(state.collab.author==="Anonymous"){
+        state.collab.author = r==="product" ? "Product" : r==="tech" ? "Tech" : "Admin";
+      }
+    }, { immediate:true });
+
+    // Persist
+    const dirty = reactive({ value:false });
+    watch(state, ()=>{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      dirty.value = true;
+    }, { deep:true });
+
+    return { state, defaults, STORAGE_KEY, dirty };
+  },
+
+  data(){
+    return {
+      currentStep: 1,
+      activeTechTab: "entrypoints",
+      activePayloadTab: "update",
+      modal: { open:false, mode:"export", text:"" },
+      steps: [
+        { id:1, title:"Scope & Parcours" },
+        { id:2, title:"Identity & Entrypoints" },
+        { id:3, title:"Security Policy" },
+        { id:4, title:"Data Contract & Mapping" },
+        { id:5, title:"Flows & Interfaces" },
+        { id:6, title:"Notifications & Messages" },
+        { id:7, title:"Errors & Observability" },
+        { id:8, title:"Export & Decision Log" }
+      ],
+      techTabs: [
+        { id:"entrypoints", label:"Entrypoints" },
+        { id:"schemas", label:"Schemas" },
+        { id:"interfaces", label:"Interfaces" },
+        { id:"errors", label:"Error playbook" },
+        { id:"json", label:"Config JSON" }
+      ],
+      entryChannels: ["email","web","qr","sms","push","app"],
+    };
+  },
+
+  computed:{
+    dirty(){ return this.$data ? this.$root?.dirty?.value ?? false : false; },
+
+    entryUrl(){
+      const s = this.state;
+      const base = `https://${(s.entry.accountId||"ACCOUNT")}.${(s.entry.baseDomain||"captainwallet.com")}${(s.entry.path||"/wallet")}`;
+      const pivot = s.identity.pivotTemplate || "{{ contact.ID }}";
+      const q = new URLSearchParams();
+      q.set("user[identifier]", pivot);
+      q.set("channel", s.entry.channel || "email");
+      q.set("tag", s.entry.tag || "workshop");
+      q.set("campaignId", s.entry.campaignId || s.campaigns.main || "main");
+
+      if(s.security.mode==="sha256"){
+        q.set("signature", `SHA256(${pivot}+SALT)`);
+      }else if(s.security.mode==="aes256"){
+        q.set("payload", `BASE64(AES256_CBC({identifier:${pivot},channel,tag,campaignId},key,iv))`);
+      }else if(s.security.mode==="custom"){
+        q.set("security", "CUSTOM()");
+      }
+
+      return `${base}?${q.toString()}`;
+    },
+
+    securityExample(){
+      const s = this.state;
+      const pivot = s.identity.pivotTemplate || "{{ contact.ID }}";
+      if(s.security.mode==="sha256"){
+        return `signature = sha256("${pivot}" + SALT)\nurl = <entrypoint>?user[identifier]=${pivot}&channel=${s.entry.channel}&tag=${s.entry.tag}&campaignId=${s.entry.campaignId}&signature=<signature>`;
+      }
+      if(s.security.mode==="aes256"){
+        return `json = {"identifier":"${pivot}","channel":"${s.entry.channel}","tag":"${s.entry.tag}","campaignId":"${s.entry.campaignId}"}\ncipher = AES-256-CBC(json, key, iv)\npayload = base64(cipher)\nurl = <entrypoint>?payload=<payload>`;
+      }
+      if(s.security.mode==="custom"){
+        return `Custom strategy:\n${s.security.customNotes || "Describe: algorithm, params, validation, secrets, tests."}`;
+      }
+      return `No security:\nurl = <entrypoint>?user[identifier]=${pivot}&channel=${s.entry.channel}&tag=${s.entry.tag}&campaignId=${s.entry.campaignId}`;
+    },
+
+    payloadPreview(){
+      const s = this.state;
+      const pivot = (s.identity.pivotTemplate || "{{ contact.ID }}");
+      const now = new Date().toISOString();
+
+      const metadatas = {};
+      for(const m of s.data.mapping){
+        if(!m.wallet) continue;
+        // take leaf key after last dot for example payload readability
+        const key = m.wallet.includes(".") ? m.wallet.split(".").slice(-1)[0] : m.wallet;
+        metadatas[key] = exampleValueForType(m.type);
+      }
+      metadatas["last_update"] = now;
+
+      const update = {
+        "user.identifier": pivot,
+        timezone: s.project.timezone,
+        metadatas
+      };
+
+      const optin = {
+        "user.identifier": pivot,
+        install_status: 1,
+        event_date: now,
+        timezone: s.project.timezone
+      };
+
+      const merge = {
+        old_user_id: "{{ old_user_id }}",
+        new_user_id: pivot,
+        event_date: now
+      };
+
+      const anonymize = {
+        "user.identifier": pivot,
+        target_campaign: s.campaigns.void || "void",
+        requested_at: now,
+        sla: "72h"
+      };
+
+      const map = { update, optin, merge, anonymize };
+      return JSON.stringify(map[this.activePayloadTab], null, 2);
+    },
+
+    schemaUpdate(){
+      return JSON.stringify({
+        "user.identifier":"string",
+        "timezone":"IANA timezone",
+        "metadatas":"object (mapping-defined)",
+        "metadatas.last_update":"date-time (ISO 8601)"
+      }, null, 2);
+    },
+    schemaOptin(){
+      return JSON.stringify({
+        "user.identifier":"string",
+        "install_status":"0|1",
+        "event_date":"date-time (ISO 8601)",
+        "timezone":"IANA timezone"
+      }, null, 2);
+    },
+    schemaMerge(){
+      return JSON.stringify({
+        "old_user_id":"string",
+        "new_user_id":"string",
+        "event_date":"date-time (ISO 8601)"
+      }, null, 2);
+    },
+    schemaAnonymize(){
+      return JSON.stringify({
+        "user.identifier":"string",
+        "target_campaign":"string (void campaign)",
+        "requested_at":"date-time (ISO 8601)",
+        "sla":"string (e.g. 72h)"
+      }, null, 2);
+    },
+
+    interfacesBlock(){
+      const s = this.state;
+      const lines = [];
+      lines.push(`# Interfaces`);
+      lines.push(`Project: ${s.project.name || "—"}`);
+      lines.push(`Timezone: ${s.project.timezone}`);
+      lines.push(`Security: ${s.security.mode.toUpperCase()} · secrets=${s.security.secretHandling} · rotation=${s.security.rotation}`);
+      lines.push(``);
+      lines.push(`## Entrypoint`);
+      lines.push(this.entryUrl);
+      lines.push(``);
+      if(s.integrations.api.enabled){
+        lines.push(`## API`);
+        lines.push(`baseUrl: ${s.integrations.api.baseUrl || "(TBD)"}`);
+        lines.push(`auth: ${s.integrations.api.auth}`);
+        lines.push(`tokenTTL: ${s.integrations.api.tokenTtl}s`);
+        lines.push(`timeout: ${s.integrations.api.timeoutMs}ms`);
+        lines.push(`retries: ${s.integrations.api.retries} (${s.integrations.api.backoff})`);
+        lines.push(`endpoints:`);
+        for(const [k,v] of Object.entries(s.integrations.api.endpoints)){
+          if(!v) continue;
+          lines.push(`  - ${k}: ${v}`);
+        }
+        lines.push(``);
+      }
+      if(s.integrations.sftp.enabled){
+        lines.push(`## SFTP`);
+        lines.push(`host: ${s.integrations.sftp.host || "(TBD)"}:${s.integrations.sftp.port}`);
+        lines.push(`toWallet: ${s.integrations.sftp.toWalletDir}`);
+        lines.push(`fromWallet: ${s.integrations.sftp.fromWalletDir}`);
+        lines.push(`frequency: ${s.integrations.sftp.frequency}${s.integrations.sftp.frequency==="custom" ? " ("+ (s.integrations.sftp.customSchedule||"TBD") +")" : ""}`);
+        lines.push(``);
+      }
+      return lines.join("\n");
+    },
+
+    entrypointSpecBlock(){
+      const s = this.state;
+      const rules = s.identity.rules;
+      return [
+        `# Entrypoint rules`,
+        `- pivotTemplate: ${s.identity.pivotTemplate || "(TBD)"}`,
+        `- normalize: strict=${rules.strict}, uppercase=${rules.uppercase}, trim=${rules.trim}, urlEncode=${rules.urlEncode}`,
+        `- channel: ${s.entry.channel || "email"}`,
+        `- tag: ${s.entry.tag || "workshop"}`,
+        `- campaignId: ${s.entry.campaignId || s.campaigns.main || "main"}`,
+        `- security: ${s.security.mode.toUpperCase()}`,
+      ].join("\n");
+    },
+
+    readiness(){
+      const s = this.state;
+      const blockers = [];
+      const warnings = [];
+
+      // blockers
+      if(!s.project.name) blockers.push("Nom de projet manquant.");
+      if(!s.entry.accountId) blockers.push("Account ID manquant.");
+      if(!s.entry.campaignId) blockers.push("Campaign ID (entrypoint) manquant.");
+      if(!s.identity.pivotTemplate) blockers.push("Identifiant pivot (template) manquant.");
+      if(!s.data.mapping.length) blockers.push("Mapping vide (ajouter au moins un champ).");
+
+      // if API enabled, need baseUrl and update endpoint
+      if(s.integrations.api.enabled){
+        if(!s.integrations.api.baseUrl) blockers.push("API base URL manquante (mode API).");
+        if(!s.integrations.api.endpoints.update) blockers.push("Update endpoint manquant (mode API).");
+      }
+      // if SFTP enabled, need host
+      if(s.integrations.sftp.enabled){
+        if(!s.integrations.sftp.host) blockers.push("SFTP host manquant (mode SFTP).");
+      }
+      // security expectations
+      if(s.security.mode==="sha256" && s.security.secretHandling==="manual"){
+        warnings.push("SHA256 + secrets en manuel : risque opérationnel (préférer vault/env).");
+      }
+      if(s.security.mode==="none"){
+        warnings.push("Security = none : à justifier explicitement (risque).");
+      }
+      if(s.data.optinGate==="disabled"){
+        warnings.push("Opt-in gating désactivé : vérifier conformité / spam push.");
+      }
+      // notifications
+      const invalidNotifs = s.notifications.filter(n => !this.notifValidation(n).ok);
+      if(invalidNotifs.length) warnings.push(`${invalidNotifs.length} notification(s) invalide(s) (lien détecté ou trop long).`);
+
+      // score
+      // Simple heuristic
+      let score = 100;
+      score -= blockers.length * 12;
+      score -= warnings.length * 6;
+      score = Math.max(0, Math.min(100, score));
+
+      return { score, blockers, warnings };
+    },
+
+    specMarkdown(){
+      const s = this.state;
+      const lines = [];
+      const h = (t)=>lines.push(`\n## ${t}\n`);
+      lines.push(`# Wallet Integration Spec — ${s.project.name || "TBD"}`);
+      lines.push(`Generated: ${new Date().toISOString()}`);
+      lines.push(`Role: ${s.collab.role}`);
+      lines.push(``);
+
+      h("1. Contexte & objectif");
+      lines.push(s.project.goal || "_TBD_");
+      lines.push(``);
+      lines.push(`**Timezone:** ${s.project.timezone}`);
+      lines.push(`**Channels:** ${(s.project.channels||[]).join(", ") || "_TBD_"}`);
+      lines.push(`**Campaigns:** main=${s.campaigns.main || "_TBD_"} · void=${s.campaigns.void || "_TBD_"}`);
+
+      h("2. Identity & Entrypoint");
+      lines.push(`**Pivot template:** \`${s.identity.pivotTemplate || "_TBD_"}\``);
+      lines.push(`**Normalization rules:** strict=${s.identity.rules.strict}, uppercase=${s.identity.rules.uppercase}, trim=${s.identity.rules.trim}, urlEncode=${s.identity.rules.urlEncode}`);
+      lines.push(``);
+      lines.push(`**Entrypoint URL (preview):**`);
+      lines.push("```");
+      lines.push(this.entryUrl);
+      lines.push("```");
+
+      h("3. Security policy");
+      lines.push(`**Mode:** ${s.security.mode.toUpperCase()}`);
+      lines.push(`**Secrets:** ${s.security.secretHandling} · rotation=${s.security.rotation}`);
+      if(s.security.mode==="custom" && s.security.customNotes){
+        lines.push(`\nCustom notes:\n${s.security.customNotes}`);
+      }
+      lines.push(`\nExample:\n\`\`\`\n${this.securityExample}\n\`\`\``);
+
+      h("4. Data contract & mapping");
+      lines.push(`**Update policy:** ${s.data.updatePolicy}`);
+      lines.push(`**Opt-in gate:** ${s.data.optinGate}`);
+      lines.push(`\n| Source | Wallet | Type | Rules |\n|---|---|---|---|`);
+      for(const m of s.data.mapping){
+        lines.push(`| ${escapePipe(m.source)} | ${escapePipe(m.wallet)} | ${escapePipe(m.type)} | ${escapePipe(m.rule||"")} |`);
+      }
+      lines.push(`\n**Update payload example:**`);
+      lines.push("```json");
+      this.activePayloadTab="update";
+      lines.push(JSON.stringify(JSON.parse(this.payloadPreview), null, 2));
+      lines.push("```");
+
+      h("5. Flows & interfaces");
+      lines.push(`**Flows:** optinRealtime=${s.flows.optinRealtime}, merge=${s.flows.merge}, anonymize=${s.flows.anonymize}`);
+      if(s.integrations.api.enabled){
+        lines.push(`\n### API`);
+        lines.push(`baseUrl: ${s.integrations.api.baseUrl || "_TBD_"}`);
+        lines.push(`auth: ${s.integrations.api.auth}`);
+        lines.push(`tokenTTL: ${s.integrations.api.tokenTtl}s`);
+        lines.push(`timeout: ${s.integrations.api.timeoutMs}ms`);
+        lines.push(`retries: ${s.integrations.api.retries} · backoff=${s.integrations.api.backoff}`);
+        lines.push(`endpoints:`);
+        for(const [k,v] of Object.entries(s.integrations.api.endpoints)){
+          if(!v) continue;
+          lines.push(`- ${k}: ${v}`);
+        }
+      }
+      if(s.integrations.sftp.enabled){
+        lines.push(`\n### SFTP (batch)`);
+        lines.push(`host: ${s.integrations.sftp.host || "_TBD_"}:${s.integrations.sftp.port}`);
+        lines.push(`toWalletDir: ${s.integrations.sftp.toWalletDir}`);
+        lines.push(`fromWalletDir: ${s.integrations.sftp.fromWalletDir}`);
+        lines.push(`frequency: ${s.integrations.sftp.frequency}${s.integrations.sftp.frequency==="custom" ? " ("+(s.integrations.sftp.customSchedule||"_TBD_")+")" : ""}`);
+      }
+
+      h("6. Notifications");
+      lines.push(`Policy: maxChars=${s.notificationsPolicy.maxChars}, noLink=${s.notificationsPolicy.noLink}, emojiOk=${s.notificationsPolicy.emojiOk}, allowVars=${s.notificationsPolicy.allowVars}`);
+      lines.push(`\n| Trigger | Message |\n|---|---|`);
+      for(const n of s.notifications){
+        lines.push(`| ${escapePipe(n.trigger)} | ${escapePipe(n.message)} |`);
+      }
+
+      h("7. Error playbook");
+      lines.push(`\n| Code | Message | Remediation |\n|---|---|---|`);
+      for(const e of s.errors){
+        lines.push(`| ${escapePipe(e.code)} | ${escapePipe(e.message)} | ${escapePipe(e.remediation||"")} |`);
+      }
+
+      h("8. Collaboration notes");
+      if(s.collab.comments.length){
+        for(const c of s.collab.comments){
+          lines.push(`- [${c.anchor}] ${c.author} (${new Date(c.ts).toISOString()}): ${c.text.replace(/\n/g," ")}`);
+        }
+      } else {
+        lines.push("_No comments._");
+      }
+
+      h("9. Readiness");
+      lines.push(`Score: ${this.readiness.score}%`);
+      if(this.readiness.blockers.length){
+        lines.push(`\nBlockers:\n- ${this.readiness.blockers.join("\n- ")}`);
+      }
+      if(this.readiness.warnings.length){
+        lines.push(`\nWarnings:\n- ${this.readiness.warnings.join("\n- ")}`);
+      }
+
+      return lines.join("\n");
+    }
+  },
+
+  methods:{
+    pickCard(active){
+      return [
+        "p-4 rounded-2xl border-2 text-left transition",
+        active ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white hover:bg-slate-50"
+      ];
+    },
+    tabClass(active){
+      return [
+        "px-3 py-2 rounded-xl text-xs font-extrabold border transition",
+        active ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+      ];
+    },
+
+    goStep(n){ this.currentStep = Math.min(this.steps.length, Math.max(1, n)); },
+    nextStep(){ this.goStep(this.currentStep + 1); },
+    prevStep(){ this.goStep(this.currentStep - 1); },
+
+    toggleArray(arr, value){
+      const i = arr.indexOf(value);
+      if(i>=0) arr.splice(i,1);
+      else arr.push(value);
+    },
+
+    addMappingRow(){
+      this.state.data.mapping.push({ id: uid("map"), source:"", wallet:"", type:"string", rule:"" });
+    },
+    removeMappingRow(idx){
+      this.state.data.mapping.splice(idx,1);
+    },
+    normalizeMapping(){
+      // basic cleanup: trim, remove empty rows
+      this.state.data.mapping = this.state.data.mapping
+        .map(r => ({
+          ...r,
+          source:(r.source||"").trim(),
+          wallet:(r.wallet||"").trim(),
+          rule:(r.rule||"").trim(),
+          type:r.type||"string"
+        }))
+        .filter(r => r.source || r.wallet);
+    },
+
+    addNotification(){
+      this.state.notifications.push({ id: uid("notif"), trigger:"", message:"" });
+    },
+    removeNotification(idx){
+      this.state.notifications.splice(idx,1);
+    },
+
+    addError(){
+      this.state.errors.push({ id: uid("err"), code:"ERX", message:"", remediation:"" });
+    },
+    removeError(idx){
+      this.state.errors.splice(idx,1);
+    },
+
+    notifValidation(n){
+      const msg = (n.message||"");
+      const max = this.state.notificationsPolicy.maxChars || 150;
+      const noLink = this.state.notificationsPolicy.noLink;
+      const linkRegex = /(https?:\/\/|www\.)/i;
+      const okLen = msg.length <= max;
+      const okLink = !noLink || !linkRegex.test(msg);
+      const ok = okLen && okLink;
+      if(ok) return { ok:true, label:"OK" };
+      const reasons = [];
+      if(!okLen) reasons.push("Trop long");
+      if(!okLink) reasons.push("Lien interdit");
+      return { ok:false, label: reasons.join(" · ") };
+    },
+
+    addCommentAnchor(anchor){
+      const author = this.state.collab.author || "Anonymous";
+      const text = prompt(`Commentaire (${anchor}) — ${author} :`);
+      if(!text) return;
+      this.state.collab.comments.push({ id: uid("c"), anchor, author, text, ts: Date.now() });
+    },
+    removeComment(id){
+      this.state.collab.comments = this.state.collab.comments.filter(c => c.id !== id);
+    },
+
+    snapshot(){
+      const label = prompt("Nom du snapshot (ex: v1.0 atelier / ready for dev) :", `snapshot ${new Date().toISOString().slice(0,19).replace("T"," ")}`);
+      if(!label) return;
+      this.state.collab.history.push({
+        id: uid("snap"),
+        label,
+        ts: Date.now(),
+        payload: JSON.stringify(this.state)
+      });
+    },
+    restoreSnapshot(id){
+      const snap = this.state.collab.history.find(h => h.id===id);
+      if(!snap) return;
+      if(!confirm(`Restaurer "${snap.label}" ? (remplace l'état actuel)`)) return;
+      const parsed = JSON.parse(snap.payload);
+      // Replace state deeply
+      for(const k of Object.keys(this.state)) delete this.state[k];
+      for(const [k,v] of Object.entries(parsed)) this.state[k] = v;
+    },
+    deleteSnapshot(id){
+      this.state.collab.history = this.state.collab.history.filter(h => h.id!==id);
+    },
+
+    formatTs(ts){
+      try{
+        const d = new Date(ts);
+        return d.toLocaleString();
+      }catch(e){ return ""+ts; }
+    },
+
+    prettyJSON(obj){
+      return JSON.stringify(obj, null, 2);
+    },
+
+    openImportExport(mode){
+      this.modal.open = true;
+      this.modal.mode = mode;
+      if(mode==="export"){
+        this.modal.text = JSON.stringify(this.state, null, 2);
+      }else{
+        this.modal.text = "";
+      }
+    },
+    applyImport(){
+      try{
+        const parsed = JSON.parse(this.modal.text);
+        // Basic sanity check
+        if(!parsed || typeof parsed !== "object") throw new Error("Invalid JSON object");
+        // Replace state
+        for(const k of Object.keys(this.state)) delete this.state[k];
+        for(const [k,v] of Object.entries(parsed)) this.state[k] = v;
+        this.modal.open = false;
+      }catch(e){
+        alert("Import impossible : " + (e?.message || e));
+      }
+    },
+    downloadJSON(){
+      const blob = new Blob([JSON.stringify(this.state, null, 2)], { type:"application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = (this.state.project.name ? slug(this.state.project.name) : "wallet-workshop") + ".json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    },
+
+    downloadSpec(kind){
+      if(kind==="md"){
+        const blob = new Blob([this.specMarkdown], { type:"text/markdown" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = (this.state.project.name ? slug(this.state.project.name) : "wallet-spec") + ".md";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        this.$root.dirty.value = false;
+        return;
+      }
+
+      // HTML spec (simple printable)
+      const html = `
+<!doctype html><html><head><meta charset="utf-8"/>
+<title>Spec — ${escapeHtml(this.state.project.name||"TBD")}</title>
+<style>
+  body{font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; padding:32px; line-height:1.45; color:#0f172a;}
+  code,pre{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+  pre{background:#0b1220; color:#e2e8f0; padding:14px; border-radius:12px; overflow:auto;}
+  h1{margin:0 0 12px 0;}
+  h2{margin-top:24px; border-top:1px solid #e2e8f0; padding-top:18px;}
+  table{border-collapse:collapse; width:100%; margin-top:10px;}
+  th,td{border:1px solid #e2e8f0; padding:8px; text-align:left; font-size:13px;}
+  th{background:#f8fafc;}
+  .pill{display:inline-block;padding:4px 10px;border:1px solid #e2e8f0;border-radius:999px;font-size:12px;margin-right:6px}
+</style></head><body>
+  <h1>Wallet Integration Spec — ${escapeHtml(this.state.project.name||"TBD")}</h1>
+  <div class="pill">Timezone: ${escapeHtml(this.state.project.timezone)}</div>
+  <div class="pill">Security: ${escapeHtml(this.state.security.mode.toUpperCase())}</div>
+  <div class="pill">API: ${this.state.integrations.api.enabled ? "on" : "off"}</div>
+  <div class="pill">SFTP: ${this.state.integrations.sftp.enabled ? "on" : "off"}</div>
+  <p><b>Generated:</b> ${new Date().toISOString()}</p>
+  ${renderMarkdownish(this.specMarkdown)}
+</body></html>`;
+
+      const blob = new Blob([html], { type:"text/html" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = (this.state.project.name ? slug(this.state.project.name) : "wallet-spec") + ".html";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      this.$root.dirty.value = false;
+    },
+
+    printSpec(){
+      // Print the HTML spec to an iframe
+      const iframe = document.getElementById("printFrame");
+      const doc = iframe.contentWindow.document;
+      const html = `
+<!doctype html><html><head><meta charset="utf-8"/>
+<title>Spec — ${escapeHtml(this.state.project.name||"TBD")}</title>
+<style>
+  body{font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; padding:26px; line-height:1.45; color:#0f172a;}
+  code,pre{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+  pre{background:#0b1220; color:#e2e8f0; padding:12px; border-radius:10px; overflow:auto;}
+  h1{margin:0 0 8px 0;}
+  h2{margin-top:18px; border-top:1px solid #e2e8f0; padding-top:14px;}
+  table{border-collapse:collapse; width:100%; margin-top:10px;}
+  th,td{border:1px solid #e2e8f0; padding:7px; text-align:left; font-size:12px;}
+  th{background:#f8fafc;}
+  .pill{display:inline-block;padding:4px 10px;border:1px solid #e2e8f0;border-radius:999px;font-size:11px;margin-right:6px}
+</style></head><body>
+  <h1>Wallet Integration Spec — ${escapeHtml(this.state.project.name||"TBD")}</h1>
+  <div class="pill">Timezone: ${escapeHtml(this.state.project.timezone)}</div>
+  <div class="pill">Security: ${escapeHtml(this.state.security.mode.toUpperCase())}</div>
+  <div class="pill">API: ${this.state.integrations.api.enabled ? "on" : "off"}</div>
+  <div class="pill">SFTP: ${this.state.integrations.sftp.enabled ? "on" : "off"}</div>
+  <p><b>Generated:</b> ${new Date().toISOString()}</p>
+  ${renderMarkdownish(this.specMarkdown)}
+</body></html>`;
+      doc.open();
+      doc.write(html);
+      doc.close();
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    },
+
+    copyToClipboard(text){
+      navigator.clipboard?.writeText(text).then(()=>{
+        // no toast framework; keep silent
+      }).catch(()=>{});
+    }
+  },
+
+  mounted(){
+    // Small UX: ensure at least one integration is selected
+    if(!this.state.integrations.api.enabled && !this.state.integrations.sftp.enabled){
+      this.state.integrations.api.enabled = true;
+    }
+  }
+}).mount("#app");
+
+/* Helpers */
+function exampleValueForType(t){
+  switch(t){
+    case "number": return 42;
+    case "boolean": return true;
+    case "date_iso": return new Date().toISOString();
+    case "enum": return "VALUE_A";
+    case "object": return { key: "value" };
+    default: return "value";
+  }
+}
+function slug(s){
+  return (s||"").toLowerCase().trim()
+    .replace(/[^\w\s-]/g,"")
+    .replace(/\s+/g,"-")
+    .replace(/-+/g,"-")
+    .slice(0,80) || "wallet";
+}
+function escapePipe(s){ return (s||"").replace(/\|/g,"\\|"); }
+function escapeHtml(s){
+  return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+// Minimal “markdown-ish” renderer (safe & printable): only h1/h2/code fences/tables/paragraphs.
+function renderMarkdownish(md){
+  const lines = md.split("\n");
+  let html = "";
+  let inCode = false;
+    let inTable = false;
+  lines.forEach(line => {
+    // Gestion des blocs de code
+    if (line.startsWith("```")) {
+      if (!inCode) { 
+        html += "<pre><code>"; 
+        inCode = true; 
+      } else { 
+        html += "</code></pre>"; 
+        inCode = false; 
+      }
+      return;
+    }
+    if (inCode) { 
+      html += escapeHtml(line) + "\n"; 
+      return; 
+    }
+
+    // Gestion des tableaux Markdown (pipe tables)
+    if (line.trim().startsWith("|")) {
+      if (!inTable) { 
+        html += "<table><thead>"; 
+        inTable = true; 
+      }
+      // Ignorer la ligne de séparation ---|---|
+      if (line.includes("---|")) { 
+        html = html.replace("</thead>", "</thead><tbody>");
+        return; 
+      }
+      const cells = line.split("|").filter((c, i, a) => i > 0 && i < a.length - 1);
+      const tag = html.includes("<tbody>") ? "td" : "th";
+      html += "<tr>" + cells.map(c => `<${tag}>${escapeHtml(c.trim())}</${tag}>`).join("") + "</tr>";
+      return;
+    } else if (inTable) {
+      html += "</tbody></table>";
+      inTable = false;
+    }
+
+    // Titres, listes et paragraphes
+    if (line.startsWith("##")) {
+      html += `<h2>${escapeHtml(line.replace("##", "").trim())}</h2>`;
+    } else if (line.startsWith("#")) {
+      html += `<h1>${escapeHtml(line.replace("#", "").trim())}</h1>`;
+    } else if (line.trim().startsWith("- ")) {
+      html += `<li>${escapeHtml(line.trim().replace("- ", ""))}</li>`;
+    } else if (line.trim() !== "") {
+      html += `<p>${escapeHtml(line)}</p>`;
+    }
+  });
+
+  if (inTable) html += "</tbody></table>";
+  return html;
+}
+</script>
+</body>
+</html>

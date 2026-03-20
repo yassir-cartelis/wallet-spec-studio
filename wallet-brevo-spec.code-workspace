@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../Downloads/wallet-workshop-studio"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "wallet-workshop-studio"
+	}
+}

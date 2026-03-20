@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurateur Wallet Brevo x Colissimo</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .flow-active { stroke: #3b82f6; stroke-width: 3; stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: draw 2s forwards; }
+        @keyframes draw { to { stroke-dashoffset: 0; } }
+        .bg-grid { background-size: 20px 20px; background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px); }
+        .code-scroll::-webkit-scrollbar { height: 4px; }
+        .code-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-100 bg-grid min-h-screen">
+
+<div id="app" class="max-w-[1600px] mx-auto p-6">
+    <header class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-6 border border-slate-200">
+        <div class="flex items-center gap-4">
+            <div class="bg-blue-600 text-white p-2 rounded-lg"><i class="fas fa-wallet fa-lg"></i></div>
+            <div>
+                <h1 class="text-xl font-bold text-slate-800">Wallet Integration Workshop</h1>
+                <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold italic">Colissimo x Captain Wallet by Brevo</p>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <button @click="downloadSpec" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition">
+                <i class="fas fa-file-export mr-2"></i>Exporter la Spec Finale
+            </button>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-12 gap-6">
+        
+        <aside class="col-span-12 lg:col-span-4 space-y-6">
+            
+            <nav class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between">
+                    <template v-for="n in 5" :key="n">
+                        <div :class="['w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition', 
+                                    currentStep === n ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400']">
+                            {{ n }}
+                        </div>
+                        <div v-if="n < 5" class="flex-1 h-px bg-slate-200 self-center mx-2"></div>
+                    </template>
+                </div>
+            </nav>
+
+            <section v-if="currentStep === 1" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4"><i class="fas fa-id-card text-blue-500 mr-2"></i>Configuration Pivot</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase">Account ID</label>
+                        <input v-model="config.accountId" type="text" class="w-full p-3 border rounded-lg bg-slate-50 mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase">Variable Pivot (Brevo)</label>
+                        <input v-model="config.pivotVar" type="text" class="w-full p-3 border rounded-lg bg-slate-50 mt-1">
+                        <p class="text-[10px] text-slate-400 mt-1 italic italic">L'identifiant unique pour chaque livraison[cite: 118].</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase">Fuseau Horaire</label>
+                        <select v-model="config.timezone" class="w-full p-3 border rounded-lg bg-slate-50 mt-1">
+                            <option value="UTC">UTC (Standard)</option>
+                            <option value="Europe/Paris">Europe/Paris (+01:00 / +02:00)</option>
+                        </select>
+                        <p class="text-[10px] text-slate-400 mt-1 italic">Important pour les remontées d'opt-in et les champs date .</p>
+                    </div>
+                </div>
+                <button @click="currentStep++" class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">Continuer</button>
+            </section>
+
+            <section v-if="currentStep === 2" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4"><i class="fas fa-shield-alt text-green-500 mr-2"></i>Sécurisation du lien</h2>
+                <div class="space-y-4 text-sm">
+                    <div v-for="opt in securityOptions" :key="opt.id" 
+                         @click="config.security = opt.id"
+                         :class="['p-4 border-2 rounded-xl cursor-pointer transition', config.security === opt.id ? 'border-blue-600 bg-blue-50' : 'border-slate-100 hover:border-slate-200']">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold">{{ opt.title }}</span>
+                            <i v-if="config.security === opt.id" class="fas fa-check-circle text-blue-600"></i>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">{{ opt.desc }}[cite: 130, 157].</p>
+                    </div>
+                </div>
+                <div class="flex gap-4 mt-6">
+                    <button @click="currentStep--" class="flex-1 border border-slate-200 py-3 rounded-lg font-bold">Retour</button>
+                    <button @click="currentStep++" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold">Continuer</button>
+                </div>
+            </section>
+
+            <section v-if="currentStep === 3" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4"><i class="fas fa-map text-orange-500 mr-2"></i>Mapping des Champs</h2>
+                <div class="space-y-3">
+                    <div v-for="field in config.mapping" :key="field.cw" class="flex gap-2 items-center">
+                        <input v-model="field.colissimo" type="text" placeholder="Champ Colissimo" class="flex-1 p-2 border rounded text-sm bg-slate-50">
+                        <i class="fas fa-arrow-right text-slate-300"></i>
+                        <input v-model="field.cw" type="text" disabled class="flex-1 p-2 border rounded text-sm bg-slate-100 text-slate-500">
+                    </div>
+                </div>
+                <div class="flex gap-4 mt-6 text-sm">
+                    <button @click="currentStep--" class="flex-1 border border-slate-200 py-3 rounded-lg font-bold">Retour</button>
+                    <button @click="currentStep++" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold">Valider</button>
+                </div>
+            </section>
+
+            <section v-if="currentStep === 4" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4"><i class="fas fa-bell text-purple-500 mr-2"></i>Notifications Push</h2>
+                <div class="space-y-4">
+                    <div v-for="notif in config.notifications" :key="notif.trigger" class="p-3 border rounded-lg bg-slate-50">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase">{{ notif.trigger }}</label>
+                        <textarea v-model="notif.message" class="w-full bg-transparent text-sm mt-1 focus:outline-none" maxlength="150"></textarea>
+                        <span class="text-[9px] text-slate-400">{{ notif.message.length }}/150 caractères.</span>
+                    </div>
+                </div>
+                <div class="flex gap-4 mt-6">
+                    <button @click="currentStep--" class="flex-1 border border-slate-200 py-3 rounded-lg font-bold">Retour</button>
+                    <button @click="currentStep++" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold">Continuer</button>
+                </div>
+            </section>
+
+            <section v-if="currentStep === 5" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 text-sm">
+                <h2 class="text-lg font-bold mb-4 text-green-600"><i class="fas fa-check-double mr-2"></i>Prêt pour intégration</h2>
+                <p class="text-slate-600 mb-4 italic">Tous les flux sont configurés : Encartement, Update API et Opt-in Realtime[cite: 205, 318].</p>
+                <button @click="currentStep = 1" class="w-full bg-slate-800 text-white py-3 rounded-lg font-bold">Recommencer l'atelier</button>
+            </section>
+
+        </aside>
+
+        <main class="col-span-12 lg:col-span-8 space-y-6">
+            
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <h3 class="text-sm font-bold text-slate-400 uppercase mb-6 italic">Architecture du Flux Temps Réel</h3>
+                <svg viewBox="0 0 800 240" class="w-full">
+                    <defs>
+                        <marker id="arrow-active" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#3b82f6"/></marker>
+                    </defs>
+
+                    <g id="sys-brevo" :class="{'opacity-100': currentStep >= 1, 'opacity-20': currentStep < 1}">
+                        <rect x="50" y="80" width="140" height="80" rx="12" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+                        <text x="120" y="125" text-anchor="middle" class="font-bold text-sm fill-slate-700">BREVO</text>
+                    </g>
+
+                    <g id="sys-cw" :class="{'opacity-100': currentStep >= 2, 'opacity-20': currentStep < 2}">
+                        <rect x="330" y="80" width="140" height="80" rx="12" fill="white" stroke="#3b82f6" stroke-width="2"/>
+                        <text x="400" y="125" text-anchor="middle" class="font-bold fill-blue-600">CAPTAIN WALLET</text>
+                    </g>
+
+                    <g id="sys-colissimo" :class="{'opacity-100': currentStep >= 3, 'opacity-20': currentStep < 3}">
+                        <rect x="610" y="80" width="140" height="80" rx="12" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+                        <text x="680" y="125" text-anchor="middle" class="font-bold fill-slate-700">COLISSIMO</text>
+                    </g>
+
+                    <path d="M 190 120 L 330 120" stroke="#cbd5e1" fill="none" :class="{'flow-active': currentStep >= 2}" marker-end="url(#arrow-active)"/>
+                    <path d="M 470 110 L 610 110" stroke="#cbd5e1" fill="none" :class="{'flow-active': currentStep >= 3}" marker-end="url(#arrow-active)"/>
+                    <path d="M 610 130 L 470 130" stroke="#cbd5e1" fill="none" :class="{'flow-active': currentStep >= 4}" marker-end="url(#arrow-active)"/>
+                </svg>
+            </div>
+
+            <div class="bg-slate-900 rounded-xl shadow-lg overflow-hidden">
+                <div class="flex border-b border-slate-800 overflow-x-auto code-scroll">
+                    <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+                            :class="['px-6 py-3 text-[10px] font-bold transition whitespace-nowrap', activeTab === tab.id ? 'text-white border-b-2 border-blue-500 bg-slate-800' : 'text-slate-500 hover:text-slate-300']">
+                        {{ tab.label }}
+                    </button>
+                </div>
+                
+                <div class="p-6 overflow-x-auto code-scroll">
+                    <div v-if="activeTab === 'url'" class="space-y-4">
+                        <div class="bg-slate-800 p-4 rounded-lg break-all text-blue-400 font-mono text-sm border border-slate-700">
+                            https://{{config.accountId}}.captainwallet.com/{{config.projectId}}/loyalty?user[identifier]=<span class="text-orange-400">{{config.pivotVar}}</span>&channel=email<span v-if="config.security === 'sha256'" class="text-green-400">&signature=SHA256({{config.pivotVar}}+SALT)</span>
+                        </div>
+                    </div>
+
+                    <div v-if="activeTab === 'payload'" class="space-y-4">
+                        <pre class="text-green-400 text-xs"><code>{
+  "user.identifier": "ABC123456",
+  "timezone": "{{config.timezone}}",
+  "metadatas": {
+    <template v-for="f in config.mapping">"{{f.cw}}": "Valeur",
+    </template>"last_update": "2026-02-27T10:30:00Z"
+  }
+}</code></pre>
+                    </div>
+
+                    <div v-if="activeTab === 'errors'" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-[10px]">
+                        <div v-for="err in errorRules" :key="err.code" class="p-2 bg-slate-800 rounded border border-slate-700">
+                            <span class="text-red-400 font-bold uppercase tracking-tighter">{{ err.code }}</span>
+                            <p class="text-slate-300 mt-1 italic">{{ err.msg }}[cite: 197, 201].</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    const { createApp } = Vue;
+    createApp({
+        data() {
+            return {
+                currentStep: 1,
+                activeTab: 'url',
+                config: {
+                    accountId: 'colissimo',
+                    projectId: 'fr_FR',
+                    pivotVar: '{{ contact.NUMERO_COLIS }}',
+                    timezone: 'Europe/Paris',
+                    security: 'sha256',
+                    mapping: [
+                        { colissimo: 'ID_COLIS', cw: 'user.identifier' },
+                        { colissimo: 'STATUT', cw: 'user.status' },
+                        { colissimo: 'EXPEDITEUR', cw: 'user.expediteur' },
+                        { colissimo: 'DATE_LIVR', cw: 'user.dateLivraison' }
+                    ],
+                    notifications: [
+                        { trigger: 'Installation', message: 'Votre suivi de livraison Colissimo est prêt ! 📦' },
+                        { trigger: 'Changement Statut', message: 'Mise à jour : Votre colis est en cours d\'acheminement.' }
+                    ]
+                },
+                tabs: [
+                    { id: 'url', label: 'Lien Encartement (Brevo)' },
+                    { id: 'payload', label: 'Payload Update API' },
+                    { id: 'errors', label: 'Règles d\'Erreurs' }
+                ],
+                securityOptions: [
+                    { id: 'sha256', title: 'SHA256 (Signature)', desc: 'Signature calculée à la volée avec clé de salage (SALT).' },
+                    { id: 'aes256', title: 'AES256 (Chiffrement)', desc: 'Chiffrement standard AES-256-CBC des paramètres.' }
+                ],
+                errorRules: [
+                    { code: 'ER0', msg: 'Identifiant inconnu dans le système.' },
+                    { code: 'ER1', msg: 'Pas d\'identifiant détecté dans l\'URL.' },
+                    { code: 'ER2', msg: 'API Colissimo indisponible (Time-out 2s).' },
+                    { code: 'ER3', msg: 'Erreur retournée par l\'API Colissimo.' }
+                ]
+            }
+        },
+        methods: {
+            downloadSpec() {
+                window.print();
+            }
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

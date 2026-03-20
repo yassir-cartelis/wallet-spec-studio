@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wallet Workshop Studio (Generic)</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .bg-grid {
+      background-size: 22px 22px;
+      background-image: radial-gradient(circle, rgb(226 232 240) 1px, transparent 1px);
+    }
+    .code-scroll::-webkit-scrollbar { height: 6px; width: 8px; }
+    .code-scroll::-webkit-scrollbar-thumb { background: rgb(51 65 85); border-radius: 999px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .flow-line { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: draw 1.2s ease forwards; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+  </style>
+</head>
+
+<body class="bg-slate-100 bg-grid min-h-screen text-slate-800">
+  <div id="app" class="max-w-[1700px] mx-auto p-6">
+    <!-- Header -->
+    <header class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6">
+      <div class="flex items-center gap-4">
+        <div class="bg-blue-600 text-white w-11 h-11 rounded-xl flex items-center justify-center">
+          <span class="text-xl">🪪</span>
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold leading-tight">Wallet Workshop Studio</h1>
+          <p class="text-xs text-slate-500 uppercase tracking-widest font-semibold italic">
+            Atelier générique — métiers &amp; tech
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 items-center">
+        <div class="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+          <span class="font-bold">Complétude</span>
+          <span class="ml-2 font-semibold" :class="completeness >= 85 ? 'text-green-700' : completeness >= 60 ? 'text-amber-700' : 'text-red-700'">
+            {{ completeness }}%
+          </span>
+        </div>
+
+        <button @click="exportJson"
+          class="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-800 transition">
+          Export JSON
+        </button>
+
+        <button @click="exportHtml"
+          class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+          Export Spec (HTML)
+        </button>
+
+        <button @click="resetAll"
+          class="border border-slate-200 bg-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-50 transition">
+          Reset
+        </button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-12 gap-6">
+      <!-- Left panel -->
+      <aside class="col-span-12 lg:col-span-4 space-y-6">
+        <!-- Stepper -->
+        <nav class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between">
+            <template v-for="s in steps" :key="s.id">
+              <button
+                @click="gotoStep(s.id)"
+                :class="[
+                  'w-9 h-9 rounded-full flex items-center justify-center font-extrabold text-xs transition border',
+                  currentStep === s.id ? 'bg-blue-600 text-white border-blue-600' : isStepValid(s.id) ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
+                ]"
+                :title="s.label"
+              >
+                {{ s.id }}
+              </button>
+              <div v-if="s.id < steps.length" class="flex-1 h-px bg-slate-200 mx-2"></div>
+            </template>
+          </div>
+          <div class="mt-4 flex items-center justify-between">
+            <div>
+              <div class="text-xs uppercase tracking-widest text-slate-400 font-bold">Étape</div>
+              <div class="font-extrabold">{{ stepLabel }}</div>
+            </div>
+            <div class="text-xs text-slate-500">
+              <span class="font-semibold">{{ currentStep }}</span>/<span class="font-semibold">{{ steps.length }}</span>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Step content -->
+        <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <!-- 1 — Scope -->
+          <div v-if="currentStep === 1" class="space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-extrabold">1) Scope &amp; Parcours</h2>
+                <p class="text-xs text-slate-500 mt-1">Cadre commun : quel atelier, quel wallet, quel parcours.</p>
+              </div>
+              <span class="text-2xl">🧭</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Nom du projet</label>
+                <input v-model.trim="project.name" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Ex: Wallet Suivi Livraison, Wallet Fidélité..." />
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Entreprise / Brand</label>
+                <input v-model.trim="project.brand" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Ex: Brand X" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">OS cibles</label>
+                <div class="mt-1 flex flex-wrap gap-2">
+                  <label class="px-3 py-2 rounded-xl border text-sm cursor-pointer select-none"
+                    :class="project.platforms.includes('ios') ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'">
+                    <input type="checkbox" class="mr-2" value="ios" v-model="project.platforms"> iOS
+                  </label>
+                  <label class="px-3 py-2 rounded-xl border text-sm cursor-pointer select-none"
+                    :class="project.platforms.includes('android') ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'">
+                    <input type="checkbox" class="mr-2" value="android" v-model="project.platforms"> Android
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Fuseau horaire</label>
+                <select v-model="project.timezone"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="UTC">UTC</option>
+                  <option value="Europe/Paris">Europe/Paris</option>
+                  <option value="America/New_York">America/New_York</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Mode d'updates</label>
+                <select v-model="flows.updateMode"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="api">API (temps réel)</option>
+                  <option value="sftp">Batch (SFTP)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Nom système source</label>
+                <input v-model.trim="sourceSystem.name" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Ex: OMS / CRM / ERP / Tracking..." />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div class="p-4 rounded-2xl border bg-slate-50">
+                <div class="text-xs font-extrabold uppercase text-slate-500">Flux activés</div>
+                <div class="mt-3 space-y-2 text-sm">
+                  <label class="flex items-center gap-2">
+                    <input type="checkbox" v-model="flows.optinRealtime" />
+                    Opt-in temps réel
+                  </label>
+                  <label class="flex items-center gap-2">
+                    <input type="checkbox" v-model="flows.anonymize" />
+                    Anonymisation / suppression
+                  </label>
+                  <label class="flex items-center gap-2">
+                    <input type="checkbox" v-model="flows.merge" />
+                    Merge d'identités
+                  </label>
+                </div>
+              </div>
+
+              <div class="p-4 rounded-2xl border bg-slate-50">
+                <div class="text-xs font-extrabold uppercase text-slate-500">Canaux d'entrée</div>
+                <div class="mt-3 space-y-2 text-sm">
+                  <label class="flex items-center gap-2">
+                    <input type="checkbox" v-model="entry.channels.email" />
+                    Email / marketing automation
+                  </label>
+                  <label class="flex items-center gap-2">
+                    <input type="checkbox" v-model="entry.channels.qr" />
+                    QR code (offline / print)
+                  </label>
+                  <label class="flex items-center gap-2">
+                    <input type="checkbox" v-model="entry.channels.web" />
+                    Web / landing
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+              <button @click="nextStep"
+                class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-extrabold hover:bg-blue-700 transition">
+                Continuer
+              </button>
+            </div>
+          </div>
+
+          <!-- 2 — Identity & Entrypoints -->
+          <div v-if="currentStep === 2" class="space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-extrabold">2) Identity &amp; Entrypoints</h2>
+                <p class="text-xs text-slate-500 mt-1">Pivot, variables template, URLs DEV/PROD.</p>
+              </div>
+              <span class="text-2xl">🔗</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Account ID</label>
+                <input v-model.trim="wallet.accountId" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="ex: mybrand" />
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Project ID</label>
+                <input v-model.trim="wallet.projectId" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="ex: fr_FR" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-extrabold text-slate-500 uppercase">Identifiant pivot (template)</label>
+              <input v-model.trim="identity.pivotTemplate" type="text"
+                class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="ex: {{ contact.ID }} / {{ event.order_id }} ..." />
+              <p class="text-[11px] text-slate-500 mt-1">
+                Tip : ce champ est celui injecté dans l’URL côté outil d’activation (email/landing/etc.).
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Exemple d'identifiant</label>
+                <input v-model.trim="identity.pivotExample" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="ex: ABC123456" />
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Channel</label>
+                <select v-model="entry.channel"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="email">email</option>
+                  <option value="sms">sms</option>
+                  <option value="web">web</option>
+                  <option value="qr">qr</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Base URL DEV</label>
+                <input v-model.trim="env.devBaseUrl" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="ex: https://dev.example.wallet.com" />
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Base URL PROD</label>
+                <input v-model.trim="env.prodBaseUrl" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="ex: https://example.wallet.com" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-extrabold text-slate-500 uppercase">Tag / Campaign tracking (optionnel)</label>
+              <input v-model.trim="entry.tag" type="text"
+                class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="ex: winter_sale_2026" />
+            </div>
+
+            <div class="flex gap-3 pt-2">
+              <button @click="prevStep"
+                class="flex-1 border border-slate-200 py-3 rounded-xl font-extrabold hover:bg-slate-50 transition">
+                Retour
+              </button>
+              <button @click="nextStep"
+                class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-extrabold hover:bg-blue-700 transition">
+                Continuer
+              </button>
+            </div>
+          </div>
+
+          <!-- 3 — Security -->
+          <div v-if="currentStep === 3" class="space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-extrabold">3) Sécurité URL</h2>
+                <p class="text-xs text-slate-500 mt-1">None / SHA256 / AES-256-CBC (démo WebCrypto).</p>
+              </div>
+              <span class="text-2xl">🛡️</span>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-xs font-extrabold text-slate-500 uppercase">Mode</label>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <button @click="security.mode='none'"
+                  :class="security.mode==='none' ? 'bg-blue-600 text-white' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'"
+                  class="px-3 py-3 rounded-xl font-extrabold text-sm transition">
+                  Aucun
+                </button>
+                <button @click="security.mode='sha256'"
+                  :class="security.mode==='sha256' ? 'bg-blue-600 text-white' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'"
+                  class="px-3 py-3 rounded-xl font-extrabold text-sm transition">
+                  SHA256
+                </button>
+                <button @click="security.mode='aes256'"
+                  :class="security.mode==='aes256' ? 'bg-blue-600 text-white' : 'bg-slate-50 border border-slate-200 hover:bg-slate-100'"
+                  class="px-3 py-3 rounded-xl font-extrabold text-sm transition">
+                  AES-256-CBC
+                </button>
+              </div>
+            </div>
+
+            <div v-if="security.mode==='sha256'" class="p-4 rounded-2xl border bg-slate-50 space-y-3">
+              <div class="text-xs font-extrabold uppercase text-slate-500">SHA256 signature</div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">SALT</label>
+                <input v-model="security.salt" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="SALT (éviter de l'exposer en prod côté client)" />
+              </div>
+              <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" v-model="security.computeClientSide" />
+                Calculer la signature côté navigateur (preview)
+              </label>
+            </div>
+
+            <div v-if="security.mode==='aes256'" class="p-4 rounded-2xl border bg-slate-50 space-y-3">
+              <div class="text-xs font-extrabold uppercase text-slate-500">AES-256-CBC</div>
+              <p class="text-xs text-slate-600">
+                Démo fonctionnelle : entre une clé 32 bytes et un IV 16 bytes en base64.
+              </p>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Key (base64)</label>
+                <input v-model="security.aesKeyB64" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="32 bytes base64 (ex: 44 chars)" />
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">IV (base64)</label>
+                <input v-model="security.aesIvB64" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="16 bytes base64 (ex: 24 chars)" />
+              </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+              <button @click="prevStep"
+                class="flex-1 border border-slate-200 py-3 rounded-xl font-extrabold hover:bg-slate-50 transition">
+                Retour
+              </button>
+              <button @click="nextStep"
+                class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-extrabold hover:bg-blue-700 transition">
+                Continuer
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 — Mapping -->
+          <div v-if="currentStep === 4" class="space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-extrabold">4) Data Contract &amp; Mapping</h2>
+                <p class="text-xs text-slate-500 mt-1">Ajout de champs, mapping, contraintes.</p>
+              </div>
+              <span class="text-2xl">🧩</span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-slate-500">
+                <span class="font-extrabold">{{ mapping.length }}</span> champs
+                <span v-if="mappingIssues.length" class="ml-2 text-red-600 font-semibold">
+                  ({{ mappingIssues.length }} point(s) à corriger)
+                </span>
+              </div>
+              <button @click="addMapping"
+                class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm font-extrabold hover:bg-slate-800 transition">
+                + Ajouter
+              </button>
+            </div>
+
+            <div class="space-y-3 max-h-[390px] overflow-auto pr-2 code-scroll">
+              <div v-for="(m, idx) in mapping" :key="m.id" class="p-3 rounded-2xl border bg-slate-50">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-xs font-extrabold uppercase text-slate-500">Champ #{{ idx+1 }}</div>
+                  <button @click="removeMapping(idx)" class="text-xs font-extrabold text-red-600 hover:underline">Supprimer</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Source field</label>
+                    <input v-model.trim="m.sourceField" type="text"
+                      class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="ex: order.status" />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Wallet field</label>
+                    <input v-model.trim="m.walletField" type="text"
+                      class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="ex: user.status" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                  <div>
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Type</label>
+                    <select v-model="m.type"
+                      class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                      <option value="string">string</option>
+                      <option value="number">number</option>
+                      <option value="boolean">boolean</option>
+                      <option value="date">date</option>
+                      <option value="object">object</option>
+                      <option value="array">array</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Format (opt.)</label>
+                    <input v-model.trim="m.format" type="text"
+                      class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="ex: ISO-8601" />
+                  </div>
+                  <div class="flex items-center gap-2 mt-6">
+                    <input type="checkbox" v-model="m.required" />
+                    <span class="text-sm font-semibold">Requis</span>
+                  </div>
+                </div>
+
+                <div v-if="fieldIssues(m).length" class="mt-2 text-xs text-red-700">
+                  <div v-for="issue in fieldIssues(m)" :key="issue">• {{ issue }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+              <button @click="prevStep"
+                class="flex-1 border border-slate-200 py-3 rounded-xl font-extrabold hover:bg-slate-50 transition">
+                Retour
+              </button>
+              <button @click="nextStep"
+                class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-extrabold hover:bg-blue-700 transition">
+                Continuer
+              </button>
+            </div>
+          </div>
+
+          <!-- 5 — Flows & Endpoints -->
+          <div v-if="currentStep === 5" class="space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-extrabold">5) Flux &amp; Interfaces</h2>
+                <p class="text-xs text-slate-500 mt-1">Endpoints, headers, timeouts, mode API/SFTP.</p>
+              </div>
+              <span class="text-2xl">🧱</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Wallet API base URL</label>
+                <input v-model.trim="api.walletBaseUrl" type="text"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="ex: https://api.wallet.com" />
+              </div>
+              <div>
+                <label class="block text-xs font-extrabold text-slate-500 uppercase">Timeout (ms)</label>
+                <input v-model.number="api.timeoutMs" type="number" min="0"
+                  class="mt-1 w-full p-3 rounded-xl border bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none" />
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl border bg-slate-50 space-y-2">
+              <div class="text-xs font-extrabold uppercase text-slate-500">Endpoints (configurables)</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Update</label>
+                  <input v-model.trim="api.paths.update" type="text"
+                    class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="/pass-owners/{identifier}" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Opt-in event</label>
+                  <input v-model.trim="api.paths.optin" type="text"
+                    class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="/hooks/optin" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Anonymize</label>
+                  <input v-model.trim="api.paths.anonymize" type="text"
+                    class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="/delete-pass-owners" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Merge</label>
+                  <input v-model.trim="api.paths.merge" type="text"
+                    class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="/hooks/merge" />
+                </div>
+              </div>
+            </div>
+
+            <div v-if="flows.updateMode === 'sftp'" class="p-4 rounded-2xl border bg-slate-50 space-y-2">
+              <div class="text-xs font-extrabold uppercase text-slate-500">Batch SFTP (option)</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Host</label>
+                  <input v-model.trim="sftp.host" type="text" class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Port</label>
+                  <input v-model.number="sftp.port" type="number" min="1" class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">ToWallet directory</label>
+                  <input v-model.trim="sftp.toWalletDir" type="text" class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">FromWallet directory</label>
+                  <input v-model.trim="sftp.fromWalletDir" type="text" class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+              <button @click="prevStep"
+                class="flex-1 border border-slate-200 py-3 rounded-xl font-extrabold hover:bg-slate-50 transition">
+                Retour
+              </button>
+              <button @click="nextStep"
+                class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-extrabold hover:bg-blue-700 transition">
+                Continuer
+              </button>
+            </div>
+          </div>
+
+          <!-- 6 — Notifications -->
+          <div v-if="currentStep === 6" class="space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-extrabold">6) Notifications</h2>
+                <p class="text-xs text-slate-500 mt-1">Triggers, messages (150 chars), validation.</p>
+              </div>
+              <span class="text-2xl">🔔</span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-slate-500">
+                <span class="font-extrabold">{{ notifications.length }}</span> message(s)
+              </div>
+              <button @click="addNotification"
+                class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm font-extrabold hover:bg-slate-800 transition">
+                + Ajouter
+              </button>
+            </div>
+
+            <div class="space-y-3 max-h-[390px] overflow-auto pr-2 code-scroll">
+              <div v-for="(n, idx) in notifications" :key="n.id" class="p-3 rounded-2xl border bg-slate-50">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-xs font-extrabold uppercase text-slate-500">Notif #{{ idx+1 }}</div>
+                  <button @click="removeNotification(idx)" class="text-xs font-extrabold text-red-600 hover:underline">Supprimer</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Trigger</label>
+                    <input v-model.trim="n.trigger" type="text"
+                      class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="ex: Installation / StatusChanged / OfferExpired" />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Timing (opt.)</label>
+                    <input v-model.trim="n.timing" type="text"
+                      class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="ex: instant / +5min / daily 9am" />
+                  </div>
+                </div>
+
+                <div class="mt-2">
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Message</label>
+                  <textarea v-model="n.message" maxlength="150"
+                    class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    rows="2"></textarea>
+                  <div class="mt-1 flex items-center justify-between text-[11px]">
+                    <span :class="n.message.includes('http') ? 'text-red-700 font-semibold' : 'text-slate-500'">
+                      {{ n.message.includes('http') ? 'Éviter les liens (http/https)' : 'OK' }}
+                    </span>
+                    <span :class="n.message.length > 150 ? 'text-red-700' : 'text-slate-500'">{{ n.message.length }}/150</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+              <button @click="prevStep"
+                class="flex-1 border border-slate-200 py-3 rounded-xl font-extrabold hover:bg-slate-50 transition">
+                Retour
+              </button>
+              <button @click="nextStep"
+                class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-extrabold hover:bg-blue-700 transition">
+                Continuer
+              </button>
+            </div>
+          </div>
+
+          <!-- 7 — Errors & Tests -->
+          <div v-if="currentStep === 7" class="space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-extrabold">7) Erreurs &amp; Recette</h2>
+                <p class="text-xs text-slate-500 mt-1">Playbook, retry, cas de test.</p>
+              </div>
+              <span class="text-2xl">🧪</span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-slate-500">
+                <span class="font-extrabold">{{ errors.length }}</span> règle(s)
+              </div>
+              <button @click="addError"
+                class="px-3 py-2 rounded-xl bg-slate-900 text-white text-sm font-extrabold hover:bg-slate-800 transition">
+                + Ajouter
+              </button>
+            </div>
+
+            <div class="space-y-3 max-h-[390px] overflow-auto pr-2 code-scroll">
+              <div v-for="(e, idx) in errors" :key="e.id" class="p-3 rounded-2xl border bg-slate-50">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-xs font-extrabold uppercase text-slate-500">Code {{ e.code || '—' }}</div>
+                  <button @click="removeError(idx)" class="text-xs font-extrabold text-red-600 hover:underline">Supprimer</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Code</label>
+                    <input v-model.trim="e.code" type="text"
+                      class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="ex: ER0" />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Catégorie</label>
+                    <select v-model="e.category"
+                      class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                      <option value="functional">Functional</option>
+                      <option value="technical">Technical</option>
+                      <option value="security">Security</option>
+                      <option value="external">External dependency</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="mt-2">
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Message (UI/Log)</label>
+                  <input v-model.trim="e.message" type="text"
+                    class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="ex: Identifiant invalide" />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Retry</label>
+                    <select v-model="e.retry"
+                      class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                      <option value="no">No</option>
+                      <option value="yes">Yes</option>
+                      <option value="backoff">Yes (exponential backoff)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Owner</label>
+                    <input v-model.trim="e.owner" type="text"
+                      class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="Wallet / Brand / CRM / ..."/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+              <button @click="prevStep"
+                class="flex-1 border border-slate-200 py-3 rounded-xl font-extrabold hover:bg-slate-50 transition">
+                Retour
+              </button>
+              <button @click="nextStep"
+                class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-extrabold hover:bg-blue-700 transition">
+                Continuer
+              </button>
+            </div>
+          </div>
+
+          <!-- 8 — Export & Collaboration -->
+          <div v-if="currentStep === 8" class="space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-extrabold">8) Collaboration &amp; Export</h2>
+                <p class="text-xs text-slate-500 mt-1">Notes d’atelier + export final.</p>
+              </div>
+              <span class="text-2xl">🤝</span>
+            </div>
+
+            <div class="p-4 rounded-2xl border bg-slate-50 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-extrabold uppercase text-slate-500">Notes</div>
+                <button @click="clearNotes" class="text-xs font-extrabold text-red-600 hover:underline">Tout effacer</button>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Auteur</label>
+                  <input v-model.trim="noteDraft.author" type="text"
+                    class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="ex: Marie (Ops), Alex (Tech)" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Section</label>
+                  <select v-model="noteDraft.section"
+                    class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option v-for="s in steps" :key="s.id" :value="s.label">{{ s.label }}</option>
+                    <option value="Global">Global</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-extrabold text-slate-500 uppercase">Note</label>
+                <textarea v-model.trim="noteDraft.message" rows="2"
+                  class="mt-1 w-full p-2.5 rounded-xl border bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Décision, TBD, question, action..." ></textarea>
+              </div>
+
+              <button @click="addNote"
+                class="w-full bg-slate-900 text-white py-3 rounded-xl font-extrabold hover:bg-slate-800 transition">
+                Ajouter la note
+              </button>
+
+              <div class="mt-3 max-h-[230px] overflow-auto pr-2 code-scroll space-y-2">
+                <div v-if="notes.length===0" class="text-xs text-slate-500 italic">
+                  Aucune note pour le moment.
+                </div>
+                <div v-for="n in notes.slice().reverse()" :key="n.id" class="p-3 rounded-2xl border bg-white">
+                  <div class="flex items-center justify-between">
+                    <div class="text-xs font-extrabold">{{ n.author || '—' }}</div>
+                    <div class="text-[11px] text-slate-500">{{ formatTs(n.ts) }}</div>
+                  </div>
+                  <div class="text-[11px] text-slate-500 mt-1">{{ n.section }}</div>
+                  <div class="text-sm mt-2 whitespace-pre-wrap">{{ n.message }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button @click="exportJson"
+                class="bg-slate-900 text-white py-3 rounded-xl font-extrabold hover:bg-slate-800 transition">
+                Export JSON
+              </button>
+              <button @click="exportHtml"
+                class="bg-blue-600 text-white py-3 rounded-xl font-extrabold hover:bg-blue-700 transition">
+                Export Spec (HTML)
+              </button>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+              <button @click="prevStep"
+                class="flex-1 border border-slate-200 py-3 rounded-xl font-extrabold hover:bg-slate-50 transition">
+                Retour
+              </button>
+              <button @click="gotoStep(1)"
+                class="flex-1 bg-slate-800 text-white py-3 rounded-xl font-extrabold hover:bg-slate-900 transition">
+                Revenir au début
+              </button>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <!-- Right panel -->
+      <main class="col-span-12 lg:col-span-8 space-y-6">
+        <!-- Live architecture -->
+        <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-extrabold text-slate-400 uppercase tracking-widest">Architecture live</h3>
+              <p class="text-xs text-slate-500 mt-1">Le schéma se reconfigure selon tes choix (mode API/SFTP, opt-in, merge, anonymize).</p>
+            </div>
+            <div class="text-xs text-slate-500">
+              <span class="font-semibold">Mode</span> :
+              <span class="font-extrabold" :class="flows.updateMode==='api' ? 'text-blue-700' : 'text-purple-700'">{{ flows.updateMode.toUpperCase() }}</span>
+            </div>
+          </div>
+
+          <div class="mt-5">
+            <svg viewBox="0 0 980 340" class="w-full">
+              <defs>
+                <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"></path>
+                </marker>
+                <marker id="arrow2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L9,3 z" fill="#7c3aed"></path>
+                </marker>
+              </defs>
+
+              <!-- Nodes -->
+              <g>
+                <rect x="40" y="60" width="220" height="90" rx="16" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+                <text x="150" y="105" text-anchor="middle" class="font-bold fill-slate-800">Activation / Marketing</text>
+                <text x="150" y="128" text-anchor="middle" class="fill-slate-500 text-xs">Email · Web · QR</text>
+              </g>
+
+              <g>
+                <rect x="360" y="40" width="220" height="90" rx="16" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+                <text x="470" y="86" text-anchor="middle" class="font-bold fill-slate-800">Wallet Platform</text>
+                <text x="470" y="109" text-anchor="middle" class="fill-slate-500 text-xs">Entrypoints · Pass · Push</text>
+              </g>
+
+              <g>
+                <rect x="700" y="60" width="240" height="90" rx="16" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+                <text x="820" y="105" text-anchor="middle" class="font-bold fill-slate-800">{{ sourceSystem.name || 'Système Source' }}</text>
+                <text x="820" y="128" text-anchor="middle" class="fill-slate-500 text-xs">CRM · OMS · ERP · API</text>
+              </g>
+
+              <g>
+                <rect x="360" y="210" width="220" height="90" rx="16" fill="white" stroke="#e2e8f0" stroke-width="2"/>
+                <text x="470" y="255" text-anchor="middle" class="font-bold fill-slate-800">User Device</text>
+                <text x="470" y="278" text-anchor="middle" class="fill-slate-500 text-xs">Apple / Google Wallet</text>
+              </g>
+
+              <!-- Flows -->
+              <!-- Entrypoint activation -> wallet -->
+              <path d="M 260 105 L 360 85" fill="none" stroke="#2563eb" stroke-width="3"
+                marker-end="url(#arrow)" class="flow-line"/>
+              <text x="305" y="72" class="fill-slate-600 text-xs">Entrypoint URL</text>
+
+              <!-- Wallet -> device -->
+              <path d="M 470 130 L 470 210" fill="none" stroke="#2563eb" stroke-width="3"
+                marker-end="url(#arrow)" class="flow-line"/>
+              <text x="485" y="175" class="fill-slate-600 text-xs">Install / Display</text>
+
+              <!-- Source -> wallet updates -->
+              <path v-if="flows.updateMode==='api'" d="M 700 115 L 580 100" fill="none" stroke="#2563eb" stroke-width="3"
+                marker-end="url(#arrow)" class="flow-line"/>
+              <text v-if="flows.updateMode==='api'" x="610" y="86" class="fill-slate-600 text-xs">Update API</text>
+
+              <!-- Wallet -> Source optin -->
+              <path v-if="flows.optinRealtime" d="M 580 70 L 700 85" fill="none" stroke="#2563eb" stroke-width="3"
+                marker-end="url(#arrow)" class="flow-line"/>
+              <text v-if="flows.optinRealtime" x="620" y="62" class="fill-slate-600 text-xs">Opt-in event</text>
+
+              <!-- SFTP batch -->
+              <path v-if="flows.updateMode==='sftp'" d="M 700 130 C 620 180, 620 180, 580 140" fill="none" stroke="#7c3aed" stroke-width="3"
+                marker-end="url(#arrow2)" class="flow-line"/>
+              <text v-if="flows.updateMode==='sftp'" x="610" y="175" class="fill-slate-600 text-xs">SFTP batch</text>
+
+              <!-- Merge / anonymize as side flows -->
+              <path v-if="flows.merge" d="M 820 150 L 820 230 L 580 255" fill="none" stroke="#2563eb" stroke-width="2"
+                marker-end="url(#arrow)" class="flow-line"/>
+              <text v-if="flows.merge" x="790" y="220" class="fill-slate-600 text-xs">Merge</text>
+
+              <path v-if="flows.anonymize" d="M 820 150 L 820 305 L 580 290" fill="none" stroke="#2563eb" stroke-width="2"
+                marker-end="url(#arrow)" class="flow-line"/>
+              <text v-if="flows.anonymize" x="780" y="303" class="fill-slate-600 text-xs">Anonymize</text>
+            </svg>
+          </div>
+        </section>
+
+        <!-- Code / previews -->
+        <section class="bg-slate-900 rounded-2xl shadow-lg overflow-hidden border border-slate-800">
+          <div class="flex border-b border-slate-800 overflow-x-auto code-scroll">
+            <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+              :class="[
+                'px-6 py-3 text-[11px] font-extrabold transition whitespace-nowrap tracking-widest uppercase',
+                activeTab === tab.id ? 'text-white border-b-2 border-blue-500 bg-slate-800' : 'text-slate-500 hover:text-slate-300'
+              ]">
+              {{ tab.label }}
+            </button>
+          </div>
+
+          <div class="p-6 overflow-auto code-scroll">
+            <!-- Entrypoint URLs -->
+            <div v-if="activeTab === 'entrypoints'" class="space-y-4">
+              <div class="text-slate-300 text-xs">
+                Template pivot: <span class="text-orange-300 mono">{{ identity.pivotTemplate || '—' }}</span>
+              </div>
+
+              <div class="space-y-2">
+                <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">DEV</div>
+                <div class="bg-slate-800 p-4 rounded-xl break-all border border-slate-700 mono text-sm text-blue-300">
+                  {{ entrypointDev }}
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">PROD</div>
+                <div class="bg-slate-800 p-4 rounded-xl break-all border border-slate-700 mono text-sm text-blue-300">
+                  {{ entrypointProd }}
+                </div>
+              </div>
+
+              <div class="text-[11px] text-slate-400">
+                Sécurité : <span class="font-extrabold text-slate-200">{{ security.mode }}</span>
+                <span v-if="security.mode==='sha256' && lastSignature" class="ml-2">
+                  signature preview: <span class="mono text-green-300">{{ lastSignature }}</span>
+                </span>
+                <span v-if="security.mode==='aes256' && lastAesToken" class="ml-2">
+                  token preview: <span class="mono text-purple-300">{{ lastAesToken }}</span>
+                </span>
+                <span v-if="lastSecurityError" class="ml-2 text-red-300 font-semibold">
+                  ({{ lastSecurityError }})
+                </span>
+              </div>
+            </div>
+
+            <!-- Payloads -->
+            <div v-if="activeTab === 'payloads'" class="space-y-6">
+              <div>
+                <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Update payload (exemple)</div>
+                <pre class="text-green-300 text-xs mono bg-slate-800 border border-slate-700 p-4 rounded-xl overflow-auto">{{ pretty(updatePayloadExample) }}</pre>
+              </div>
+
+              <div v-if="flows.optinRealtime">
+                <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Opt-in event (exemple)</div>
+                <pre class="text-green-300 text-xs mono bg-slate-800 border border-slate-700 p-4 rounded-xl overflow-auto">{{ pretty(optinEventExample) }}</pre>
+              </div>
+
+              <div v-if="flows.merge">
+                <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Merge event (exemple)</div>
+                <pre class="text-green-300 text-xs mono bg-slate-800 border border-slate-700 p-4 rounded-xl overflow-auto">{{ pretty(mergeEventExample) }}</pre>
+              </div>
+
+              <div v-if="flows.anonymize">
+                <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Anonymize (exemple)</div>
+                <pre class="text-green-300 text-xs mono bg-slate-800 border border-slate-700 p-4 rounded-xl overflow-auto">{{ pretty(anonymizePayloadExample) }}</pre>
+              </div>
+            </div>
+
+            <!-- Schemas -->
+            <div v-if="activeTab === 'schemas'" class="space-y-6">
+              <div>
+                <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Data contract (mapping)</div>
+                <pre class="text-blue-200 text-xs mono bg-slate-800 border border-slate-700 p-4 rounded-xl overflow-auto">{{ pretty(mappingContract) }}</pre>
+              </div>
+              <div>
+                <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Interfaces</div>
+                <pre class="text-blue-200 text-xs mono bg-slate-800 border border-slate-700 p-4 rounded-xl overflow-auto">{{ pretty(interfaceContract) }}</pre>
+              </div>
+            </div>
+
+            <!-- Errors -->
+            <div v-if="activeTab === 'errors'" class="space-y-3">
+              <div v-if="errors.length===0" class="text-slate-400 text-sm italic">Aucune règle d'erreur.</div>
+              <div v-for="e in errors" :key="e.id" class="p-3 bg-slate-800 rounded-xl border border-slate-700">
+                <div class="flex items-center justify-between">
+                  <div class="text-red-300 font-extrabold uppercase tracking-widest text-xs">{{ e.code || '—' }}</div>
+                  <div class="text-slate-400 text-[11px]">{{ e.category }}</div>
+                </div>
+                <div class="text-slate-200 mt-2">{{ e.message || '—' }}</div>
+                <div class="text-slate-400 mt-2 text-[11px]">retry: <span class="text-slate-200 font-semibold">{{ e.retry }}</span> · owner: <span class="text-slate-200 font-semibold">{{ e.owner || '—' }}</span></div>
+              </div>
+            </div>
+
+            <!-- Spec -->
+            <div v-if="activeTab === 'spec'" class="space-y-4">
+              <div class="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest">Spec snapshot (JSON)</div>
+              <pre class="text-slate-200 text-xs mono bg-slate-800 border border-slate-700 p-4 rounded-xl overflow-auto">{{ pretty(specSnapshot) }}</pre>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer class="mt-8 text-xs text-slate-500">
+      Sauvegarde locale automatique (localStorage). Aucune donnée n'est envoyée.
+    </footer>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    function uid(prefix="id") {
+      return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+    }
+
+    function safeJsonParse(s, fallback) {
+      try { return JSON.parse(s); } catch { return fallback; }
+    }
+
+    function bytesToBase64(bytes) {
+      let binary = "";
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      return btoa(binary);
+    }
+
+    function base64ToBytes(b64) {
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+
+    function bytesToHex(bytes) {
+      return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function sha256Hex(input) {
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest("SHA-256", enc.encode(input));
+      return bytesToHex(new Uint8Array(buf));
+    }
+
+    async function aes256cbcEncryptBase64(plaintext, keyB64, ivB64) {
+      const enc = new TextEncoder();
+      const data = enc.encode(plaintext);
+
+      const keyRaw = base64ToBytes(keyB64);
+      const ivRaw = base64ToBytes(ivB64);
+
+      if (keyRaw.length !== 32) throw new Error("AES key must be 32 bytes");
+      if (ivRaw.length !== 16) throw new Error("IV must be 16 bytes");
+
+      const key = await crypto.subtle.importKey(
+        "raw",
+        keyRaw,
+        { name: "AES-CBC" },
+        false,
+        ["encrypt"]
+      );
+
+      const ciphertext = await crypto.subtle.encrypt(
+        { name: "AES-CBC", iv: ivRaw },
+        key,
+        data
+      );
+
+      return bytesToBase64(new Uint8Array(ciphertext));
+    }
+
+    createApp({
+      data() {
+        return {
+          currentStep: 1,
+          activeTab: "entrypoints",
+          steps: [
+            { id: 1, label: "Scope & Parcours" },
+            { id: 2, label: "Identity & Entrypoints" },
+            { id: 3, label: "Sécurité URL" },
+            { id: 4, label: "Mapping" },
+            { id: 5, label: "Flux & Interfaces" },
+            { id: 6, label: "Notifications" },
+            { id: 7, label: "Erreurs & Recette" },
+            { id: 8, label: "Collaboration & Export" },
+          ],
+          tabs: [
+            { id: "entrypoints", label: "Entrypoints" },
+            { id: "payloads", label: "Payloads" },
+            { id: "schemas", label: "Contracts" },
+            { id: "errors", label: "Errors" },
+            { id: "spec", label: "Spec JSON" },
+          ],
+
+          project: {
+            name: "Wallet Workshop",
+            brand: "",
+            platforms: ["ios", "android"],
+            timezone: "Europe/Paris",
+          },
+
+          sourceSystem: {
+            name: "Système Source",
+          },
+
+          wallet: {
+            accountId: "mybrand",
+            projectId: "fr_FR",
+          },
+
+          env: {
+            devBaseUrl: "https://dev.example.wallet",
+            prodBaseUrl: "https://example.wallet",
+          },
+
+          entry: {
+            channel: "email",
+            tag: "",
+            channels: { email: true, web: false, qr: false },
+          },
+
+          identity: {
+            pivotTemplate: "{{ contact.ID }}",
+            pivotExample: "ABC123456",
+          },
+
+          security: {
+            mode: "sha256", // none | sha256 | aes256
+            salt: "",
+            computeClientSide: true,
+            aesKeyB64: "",
+            aesIvB64: "",
+          },
+
+          flows: {
+            updateMode: "api", // api | sftp
+            optinRealtime: true,
+            anonymize: true,
+            merge: false,
+          },
+
+          api: {
+            walletBaseUrl: "https://api.example.wallet",
+            timeoutMs: 2000,
+            paths: {
+              update: "/pass-owners/{identifier}",
+              optin: "/hooks/optin",
+              anonymize: "/delete-pass-owners",
+              merge: "/hooks/merge",
+            },
+          },
+
+          sftp: {
+            host: "sftp.example.wallet",
+            port: 22,
+            toWalletDir: "/ToWallet",
+            fromWalletDir: "/FromWallet",
+          },
+
+          mapping: [
+            { id: uid("m"), sourceField: "order.id", walletField: "user.identifier", type: "string", format: "", required: true },
+            { id: uid("m"), sourceField: "order.status", walletField: "user.status", type: "string", format: "", required: false },
+            { id: uid("m"), sourceField: "order.eta", walletField: "user.eta", type: "date", format: "ISO-8601", required: false },
+          ],
+
+          notifications: [
+            { id: uid("n"), trigger: "Installation", timing: "instant", message: "Votre wallet est prêt ✅" },
+          ],
+
+          errors: [
+            { id: uid("e"), code: "ER0", category: "functional", message: "Identifiant inconnu", retry: "no", owner: "Brand" },
+            { id: uid("e"), code: "ER2", category: "external", message: "Dépendance indisponible / timeout", retry: "backoff", owner: "Source System" },
+          ],
+
+          notes: [],
+          noteDraft: { author: "", section: "Global", message: "" },
+
+          lastSignature: "",
+          lastAesToken: "",
+          lastSecurityError: "",
+        };
+      },
+
+      computed: {
+        stepLabel() {
+          return this.steps.find(s => s.id === this.currentStep)?.label || "";
+        },
+
+        mappingIssues() {
+          const issues = [];
+          const wf = this.mapping.map(m => (m.walletField || "").trim()).filter(Boolean);
+          const duplicates = wf.filter((x, i) => wf.indexOf(x) !== i);
+          if (duplicates.length) issues.push("Wallet fields dupliqués: " + [...new Set(duplicates)].join(", "));
+
+          for (const m of this.mapping) {
+            issues.push(...this.fieldIssues(m).map(x => `${m.walletField || "?"}: ${x}`));
+          }
+          return issues;
+        },
+
+        completeness() {
+          let score = 0;
+          const add = (cond, pts) => { if (cond) score += pts; };
+
+          add(!!this.project.name.trim(), 10);
+          add(!!this.project.timezone, 5);
+          add(this.project.platforms.length > 0, 5);
+
+          add(!!this.wallet.accountId.trim(), 10);
+          add(!!this.wallet.projectId.trim(), 10);
+          add(!!this.identity.pivotTemplate.trim(), 10);
+          add(!!this.identity.pivotExample.trim(), 5);
+          add(!!this.env.devBaseUrl.trim(), 5);
+          add(!!this.env.prodBaseUrl.trim(), 5);
+
+          add(this.security.mode !== "", 5);
+          add(this.security.mode !== "sha256" || (!!this.security.salt.trim() || !this.security.computeClientSide), 5);
+          add(this.security.mode !== "aes256" || (!!this.security.aesKeyB64.trim() && !!this.security.aesIvB64.trim()), 5);
+
+          add(this.mapping.length >= 1, 8);
+          add(this.mappingIssues.length === 0, 8);
+
+          add(!!this.api.walletBaseUrl.trim(), 6);
+          add(!!this.api.paths.update.trim(), 4);
+
+          add(this.notifications.every(n => (n.message || "").length <= 150 && !(n.message || "").includes("http")), 4);
+
+          add(this.errors.length >= 1, 3);
+          add(this.notes.length >= 1, 2);
+
+          return Math.min(100, Math.max(0, Math.round(score)));
+        },
+
+        entrypointBaseParams() {
+          const params = [];
+          params.push(`user[identifier]=${encodeURIComponent(this.identity.pivotExample || "")}`);
+          params.push(`channel=${encodeURIComponent(this.entry.channel || "email")}`);
+          if (this.entry.tag.trim()) params.push(`tag=${encodeURIComponent(this.entry.tag.trim())}`);
+          return params.join("&");
+        },
+
+        entrypointDev() {
+          return this.buildEntrypointUrl(this.env.devBaseUrl);
+        },
+
+        entrypointProd() {
+          return this.buildEntrypointUrl(this.env.prodBaseUrl);
+        },
+
+        updatePayloadExample() {
+          const metadatas = {};
+          for (const m of this.mapping) {
+            const key = (m.walletField || "").trim();
+            if (!key) continue;
+            if (key === "user.identifier") continue;
+            metadatas[key] = this.exampleValueForType(m.type);
+          }
+          metadatas.last_update = new Date().toISOString();
+
+          return {
+            "user.identifier": this.identity.pivotExample || "ABC123456",
+            timezone: this.project.timezone,
+            metadatas,
+          };
+        },
+
+        optinEventExample() {
+          return {
+            "user.identifier": this.identity.pivotExample || "ABC123456",
+            install_status: 1,
+            event_date: new Date().toISOString(),
+          };
+        },
+
+        mergeEventExample() {
+          return {
+            from_identifier: "OLD_" + (this.identity.pivotExample || "ABC123456"),
+            to_identifier: this.identity.pivotExample || "ABC123456",
+            event_date: new Date().toISOString(),
+          };
+        },
+
+        anonymizePayloadExample() {
+          return {
+            "user.identifier": this.identity.pivotExample || "ABC123456",
+            event_date: new Date().toISOString(),
+            reason: "user_request",
+          };
+        },
+
+        mappingContract() {
+          return this.mapping.map(m => ({
+            sourceField: m.sourceField,
+            walletField: m.walletField,
+            type: m.type,
+            format: m.format || undefined,
+            required: !!m.required,
+          }));
+        },
+
+        interfaceContract() {
+          const contract = {
+            api: {
+              baseUrl: this.api.walletBaseUrl,
+              timeoutMs: this.api.timeoutMs,
+              paths: this.api.paths,
+              updateMode: this.flows.updateMode,
+            },
+            sftp: this.flows.updateMode === "sftp" ? this.sftp : undefined,
+            security: {
+              mode: this.security.mode,
+              sha256: this.security.mode === "sha256" ? { computeClientSidePreview: this.security.computeClientSide, saltPresent: !!this.security.salt } : undefined,
+              aes256: this.security.mode === "aes256" ? { keyPresent: !!this.security.aesKeyB64, ivPresent: !!this.security.aesIvB64 } : undefined,
+            }
+          };
+          return contract;
+        },
+
+        specSnapshot() {
+          return this.buildSpecObject();
+        },
+      },
+
+      watch: {
+        project: { deep: true, handler() { this.persist(); } },
+        sourceSystem: { deep: true, handler() { this.persist(); } },
+        wallet: { deep: true, handler() { this.persist(); } },
+        env: { deep: true, handler() { this.persist(); } },
+        entry: { deep: true, handler() { this.persist(); this.refreshSecurityPreview(); } },
+        identity: { deep: true, handler() { this.persist(); this.refreshSecurityPreview(); } },
+        security: { deep: true, handler() { this.persist(); this.refreshSecurityPreview(); } },
+        flows: { deep: true, handler() { this.persist(); } },
+        api: { deep: true, handler() { this.persist(); } },
+        sftp: { deep: true, handler() { this.persist(); } },
+        mapping: { deep: true, handler() { this.persist(); } },
+        notifications: { deep: true, handler() { this.persist(); } },
+        errors: { deep: true, handler() { this.persist(); } },
+        notes: { deep: true, handler() { this.persist(); } },
+      },
+
+      async mounted() {
+        this.restore();
+        await this.refreshSecurityPreview();
+      },
+
+      methods: {
+        pretty(obj) {
+          return JSON.stringify(obj, null, 2);
+        },
+
+        formatTs(ts) {
+          try {
+            const d = new Date(ts);
+            return d.toLocaleString();
+          } catch {
+            return ts;
+          }
+        },
+
+        exampleValueForType(t) {
+          switch (t) {
+            case "number": return 42;
+            case "boolean": return true;
+            case "date": return new Date().toISOString();
+            case "object": return { example: true };
+            case "array": return ["example"];
+            default: return "value";
+          }
+        },
+
+        fieldIssues(m) {
+          const issues = [];
+          const s = (m.sourceField || "").trim();
+          const w = (m.walletField || "").trim();
+          if (!s) issues.push("sourceField manquant");
+          if (!w) issues.push("walletField manquant");
+          if (w && /\\s/.test(w)) issues.push("walletField contient des espaces");
+          return issues;
+        },
+
+        isStepValid(stepId) {
+          switch (stepId) {
+            case 1:
+              return !!this.project.name.trim() && this.project.platforms.length > 0 && !!this.project.timezone;
+            case 2:
+              return !!this.wallet.accountId.trim()
+                && !!this.wallet.projectId.trim()
+                && !!this.identity.pivotTemplate.trim()
+                && !!this.identity.pivotExample.trim()
+                && !!this.env.devBaseUrl.trim()
+                && !!this.env.prodBaseUrl.trim();
+            case 3:
+              if (this.security.mode === "sha256") {
+                return !this.security.computeClientSide || !!this.security.salt.trim();
+              }
+              if (this.security.mode === "aes256") {
+                return !!this.security.aesKeyB64.trim() && !!this.security.aesIvB64.trim();
+              }
+              return true;
+            case 4:
+              return this.mapping.length > 0 && this.mappingIssues.length === 0;
+            case 5:
+              if (!this.api.walletBaseUrl.trim() || !this.api.paths.update.trim()) return false;
+              if (this.flows.updateMode === "sftp") {
+                return !!this.sftp.host.trim() && !!this.sftp.toWalletDir.trim() && !!this.sftp.fromWalletDir.trim();
+              }
+              return true;
+            case 6:
+              return this.notifications.every(n => (n.message || "").length <= 150 && !(n.message || "").includes("http") && (n.trigger || "").trim().length > 0);
+            case 7:
+              return this.errors.length > 0 && this.errors.every(e => (e.code || "").trim() && (e.message || "").trim());
+            case 8:
+              return true;
+            default:
+              return false;
+          }
+        },
+
+        gotoStep(n) {
+          this.currentStep = Math.min(this.steps.length, Math.max(1, n));
+          if ([2,3].includes(this.currentStep)) this.activeTab = "entrypoints";
+          if (this.currentStep === 4) this.activeTab = "schemas";
+          if (this.currentStep === 5) this.activeTab = "schemas";
+          if (this.currentStep === 6) this.activeTab = "payloads";
+          if (this.currentStep === 7) this.activeTab = "errors";
+          if (this.currentStep === 8) this.activeTab = "spec";
+        },
+
+        nextStep() { this.gotoStep(this.currentStep + 1); },
+        prevStep() { this.gotoStep(this.currentStep - 1); },
+
+        addMapping() {
+          this.mapping.push({
+            id: uid("m"),
+            sourceField: "",
+            walletField: "",
+            type: "string",
+            format: "",
+            required: false
+          });
+        },
+
+        removeMapping(idx) { this.mapping.splice(idx, 1); },
+
+        addNotification() {
+          this.notifications.push({ id: uid("n"), trigger: "", timing: "", message: "" });
+        },
+
+        removeNotification(idx) { this.notifications.splice(idx, 1); },
+
+        addError() {
+          this.errors.push({ id: uid("e"), code: "", category: "technical", message: "", retry: "no", owner: "" });
+        },
+
+        removeError(idx) { this.errors.splice(idx, 1); },
+
+        addNote() {
+          const author = (this.noteDraft.author || "").trim();
+          const section = (this.noteDraft.section || "Global").trim();
+          const message = (this.noteDraft.message || "").trim();
+          if (!message) return;
+
+          this.notes.push({ id: uid("note"), author, section, message, ts: new Date().toISOString() });
+          this.noteDraft.message = "";
+        },
+
+        clearNotes() { this.notes = []; },
+
+        buildEntrypointUrl(baseUrl) {
+          const base = (baseUrl || "").replace(/\\/+$/ "");
+          const path = `/${encodeURIComponent(this.wallet.projectId || "")}/loyalty`;
+          const paramsBase = this.entrypointBaseParams;
+
+          const params = [paramsBase];
+          if (this.security.mode === "sha256" && this.security.computeClientSide && this.lastSignature) {
+            params.push(`signature=${encodeURIComponent(this.lastSignature)}`);
+          }
+          if (this.security.mode === "aes256" && this.lastAesToken) {
+            params.push(`token=${encodeURIComponent(this.lastAesToken)}`);
+          }
+          return `${base}${path}?${params.join("&")}`;
+        },
+
+        async refreshSecurityPreview() {
+          this.lastSignature = "";
+          this.lastAesToken = "";
+          this.lastSecurityError = "";
+
+          const identifier = this.identity.pivotExample || "";
+          try {
+            if (this.security.mode === "sha256") {
+              if (this.security.computeClientSide) {
+                const salt = this.security.salt || "";
+                if (!salt) return;
+                this.lastSignature = await sha256Hex(identifier + salt);
+              }
+            }
+
+            if (this.security.mode === "aes256") {
+              const keyB64 = (this.security.aesKeyB64 || "").trim();
+              const ivB64 = (this.security.aesIvB64 || "").trim();
+              if (!keyB64 || !ivB64) return;
+
+              const plaintext = `identifier=${identifier}&channel=${this.entry.channel}${this.entry.tag.trim() ? `&tag=${this.entry.tag.trim()}` : ""}`;
+              const b64 = await aes256cbcEncryptBase64(plaintext, keyB64, ivB64);
+              this.lastAesToken = b64;
+            }
+          } catch (err) {
+            this.lastSecurityError = (err && err.message) ? err.message : String(err);
+          }
+        },
+
+        buildSpecObject() {
+          return {
+            meta: { generatedAt: new Date().toISOString(), tool: "Wallet Workshop Studio", version: "1.0" },
+            project: this.project,
+            sourceSystem: this.sourceSystem,
+            wallet: this.wallet,
+            environments: this.env,
+            identity: this.identity,
+            entry: {
+              channel: this.entry.channel,
+              tag: this.entry.tag,
+              channels: this.entry.channels,
+              entrypointDev: this.entrypointDev,
+              entrypointProd: this.entrypointProd,
+            },
+            security: {
+              mode: this.security.mode,
+              sha256: this.security.mode === "sha256" ? { computeClientSidePreview: this.security.computeClientSide, saltPresent: !!this.security.salt } : undefined,
+              aes256: this.security.mode === "aes256" ? { keyPresent: !!this.security.aesKeyB64, ivPresent: !!this.security.aesIvB64 } : undefined,
+            },
+            flows: this.flows,
+            api: this.api,
+            sftp: this.flows.updateMode === "sftp" ? this.sftp : undefined,
+            mapping: this.mappingContract,
+            notifications: this.notifications,
+            errors: this.errors,
+            notes: this.notes,
+          };
+        },
+
+        exportJson() {
+          const obj = this.buildSpecObject();
+          const json = JSON.stringify(obj, null, 2);
+          const blob = new Blob([json], { type: "application/json" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = (this.project.name || "wallet_workshop_spec").replace(/[^\\w\\-]+/g, "_") + ".json";
+          a.click();
+          URL.revokeObjectURL(a.href);
+        },
+
+        exportHtml() {
+          const spec = this.buildSpecObject();
+          const html = this.renderSpecHtml(spec);
+          const w = window.open("", "_blank");
+          if (!w) return;
+          w.document.open();
+          w.document.write(html);
+          w.document.close();
+        },
+
+        renderSpecHtml(spec) {
+          const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+          const li = (label, value) => `
+            <div style="display:flex; gap:12px; padding:6px 0; border-bottom:1px solid #e2e8f0;">
+              <div style="width:240px; color:#64748b; font-weight:700; text-transform:uppercase; font-size:11px; letter-spacing:1px;">${esc(label)}</div>
+              <div style="flex:1; font-size:14px; color:#0f172a; font-weight:600;">${esc(value)}</div>
+            </div>`;
+          const codeBlock = (title, obj) => `
+            <h3 style="margin:18px 0 8px; font-size:14px; color:#0f172a; letter-spacing:1px; text-transform:uppercase;">${esc(title)}</h3>
+            <pre style="background:#0b1220; color:#e2e8f0; padding:14px; border-radius:12px; overflow:auto; font-size:12px;">${esc(JSON.stringify(obj, null, 2))}</pre>
+          `;
+
+          const mappingRows = (spec.mapping || []).map(m => `
+            <tr>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(m.sourceField)}</td>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(m.walletField)}</td>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(m.type)}</td>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(m.format || "")}</td>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0; text-align:center;">${m.required ? "✅" : "—"}</td>
+            </tr>
+          `).join("");
+
+          const notifRows = (spec.notifications || []).map(n => `
+            <tr>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(n.trigger)}</td>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(n.timing || "")}</td>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(n.message)}</td>
+            </tr>
+          `).join("");
+
+          const errRows = (spec.errors || []).map(e => `
+            <tr>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0; font-weight:800;">${esc(e.code)}</td>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(e.category)}</td>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(e.message)}</td>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(e.retry)}</td>
+              <td style="padding:8px; border-bottom:1px solid #e2e8f0;">${esc(e.owner || "")}</td>
+            </tr>
+          `).join("");
+
+          const notes = (spec.notes || []).map(n => `
+            <div style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin:8px 0;">
+              <div style="display:flex; justify-content:space-between; gap:10px;">
+                <div style="font-weight:900;">${esc(n.author || "—")}</div>
+                <div style="color:#64748b; font-size:12px;">${esc(new Date(n.ts).toLocaleString())}</div>
+              </div>
+              <div style="color:#64748b; font-size:12px; margin-top:4px;">${esc(n.section)}</div>
+              <div style="margin-top:10px; white-space:pre-wrap;">${esc(n.message)}</div>
+            </div>
+          `).join("");
+
+          return `
+            <!doctype html>
+            <html lang="fr"><head>
+              <meta charset="utf-8"/>
+              <meta name="viewport" content="width=device-width, initial-scale=1"/>
+              <title>${esc(spec.project?.name || "Wallet Spec")}</title>
+              <style>
+                body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:0; background:#f8fafc; color:#0f172a; }
+                .page { max-width: 1040px; margin: 24px auto; background:white; border:1px solid #e2e8f0; border-radius:18px; padding:22px; }
+                .title { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
+                h1 { margin:0; font-size:22px; }
+                .sub { margin-top:6px; color:#64748b; font-size:12px; text-transform:uppercase; letter-spacing:2px; font-weight:800; }
+                h2 { margin:22px 0 10px; font-size:16px; }
+                table { width:100%; border-collapse:collapse; }
+                th { text-align:left; padding:8px; background:#f1f5f9; border-bottom:1px solid #e2e8f0; font-size:12px; text-transform:uppercase; letter-spacing:1px; }
+                @media print { body { background:white; } .page { border:none; margin:0; border-radius:0; } .no-print { display:none; } }
+              </style>
+            </head>
+            <body>
+              <div class="page">
+                <div class="title">
+                  <div>
+                    <h1>${esc(spec.project?.name || "Wallet Spec")}</h1>
+                    <div class="sub">${esc(spec.project?.brand || "")}</div>
+                  </div>
+                  <div class="no-print">
+                    <button onclick="window.print()" style="background:#2563eb;color:white;border:none;padding:10px 12px;border-radius:12px;font-weight:800;cursor:pointer;">
+                      Imprimer / PDF
+                    </button>
+                  </div>
+                </div>
+
+                <h2>Contexte</h2>
+                ${li("Timezone", spec.project?.timezone)}
+                ${li("Platforms", (spec.project?.platforms || []).join(", "))}
+                ${li("Source system", spec.sourceSystem?.name)}
+                ${li("Update mode", spec.flows?.updateMode)}
+                ${li("Opt-in realtime", spec.flows?.optinRealtime ? "yes" : "no")}
+                ${li("Anonymize", spec.flows?.anonymize ? "yes" : "no")}
+                ${li("Merge", spec.flows?.merge ? "yes" : "no")}
+
+                <h2>Entrypoints</h2>
+                ${li("Pivot template", spec.identity?.pivotTemplate)}
+                ${li("Pivot example", spec.identity?.pivotExample)}
+                ${li("Channel", spec.entry?.channel)}
+                ${li("Tag", spec.entry?.tag || "")}
+                ${li("DEV URL", spec.entry?.entrypointDev)}
+                ${li("PROD URL", spec.entry?.entrypointProd)}
+
+                <h2>Sécurité</h2>
+                ${li("Mode", spec.security?.mode)}
+
+                <h2>Interfaces</h2>
+                ${li("API base URL", spec.api?.walletBaseUrl)}
+                ${li("Timeout (ms)", spec.api?.timeoutMs)}
+                ${li("Update path", spec.api?.paths?.update)}
+                ${li("Opt-in path", spec.api?.paths?.optin)}
+                ${li("Anonymize path", spec.api?.paths?.anonymize)}
+                ${li("Merge path", spec.api?.paths?.merge)}
+
+                ${spec.sftp ? `
+                  <h2>SFTP</h2>
+                  ${li("Host", spec.sftp.host)}
+                  ${li("Port", spec.sftp.port)}
+                  ${li("ToWallet dir", spec.sftp.toWalletDir)}
+                  ${li("FromWallet dir", spec.sftp.fromWalletDir)}
+                ` : ""}
+
+                <h2>Data Contract</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Source field</th>
+                      <th>Wallet field</th>
+                      <th>Type</th>
+                      <th>Format</th>
+                      <th>Required</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${mappingRows || `<tr><td style="padding:8px;" colspan="5">—</td></tr>`}
+                  </tbody>
+                </table>
+
+                <h2>Notifications</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Trigger</th>
+                      <th>Timing</th>
+                      <th>Message</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${notifRows || `<tr><td style="padding:8px;" colspan="3">—</td></tr>`}
+                  </tbody>
+                </table>
+
+                <h2>Error Playbook</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Category</th>
+                      <th>Message</th>
+                      <th>Retry</th>
+                      <th>Owner</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${errRows || `<tr><td style="padding:8px;" colspan="5">—</td></tr>`}
+                  </tbody>
+                </table>
+
+                <h2>Notes atelier</h2>
+                ${notes || `<div style="color:#64748b;">—</div>`}
+
+                ${codeBlock("Payload update (exemple)", {
+                  "user.identifier": spec.identity?.pivotExample || "ABC123456",
+                  timezone: spec.project?.timezone || "UTC",
+                  metadatas: (spec.mapping || []).reduce((acc, m) => {
+                    if (m.walletField && m.walletField !== "user.identifier") acc[m.walletField] = "<value>";
+                    return acc;
+                  }, { last_update: new Date().toISOString() })
+                })}
+              </div>
+            </body></html>
+          `;
+        },
+
+        persist() {
+          const payload = {
+            currentStep: this.currentStep,
+            activeTab: this.activeTab,
+            project: this.project,
+            sourceSystem: this.sourceSystem,
+            wallet: this.wallet,
+            env: this.env,
+            entry: this.entry,
+            identity: this.identity,
+            security: this.security,
+            flows: this.flows,
+            api: this.api,
+            sftp: this.sftp,
+            mapping: this.mapping,
+            notifications: this.notifications,
+            errors: this.errors,
+            notes: this.notes,
+            noteDraft: this.noteDraft,
+          };
+          localStorage.setItem("wallet_workshop_studio_v1", JSON.stringify(payload));
+        },
+
+        restore() {
+          const raw = localStorage.getItem("wallet_workshop_studio_v1");
+          if (!raw) return;
+          const saved = safeJsonParse(raw, null);
+          if (!saved) return;
+
+          const assign = (key) => { if (saved[key] !== undefined) this[key] = saved[key]; };
+          assign("currentStep");
+          assign("activeTab");
+          assign("project");
+          assign("sourceSystem");
+          assign("wallet");
+          assign("env");
+          assign("entry");
+          assign("identity");
+          assign("security");
+          assign("flows");
+          assign("api");
+          assign("sftp");
+          assign("mapping");
+          assign("notifications");
+          assign("errors");
+          assign("notes");
+          assign("noteDraft");
+        },
+
+        resetAll() {
+          localStorage.removeItem("wallet_workshop_studio_v1");
+          location.reload();
+        },
+      }
+    }).mount("#app");
+  </script>
+</body>
+</html>

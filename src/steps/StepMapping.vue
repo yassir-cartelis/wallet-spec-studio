@@ -9,6 +9,22 @@ const s = store.state
 
 const TYPES: FieldType[] = ['string', 'boolean', 'number', 'date']
 
+// Prefixes that are already valid wallet field namespaces
+const KNOWN_PREFIXES = ['user.', 'pass.', 'install_status']
+
+/**
+ * Called on blur — if the value is a bare word with no known prefix,
+ * auto-prefix it with "user." (e.g. "delivery_date" → "user.delivery_date")
+ */
+function normalizeWalletField(field: { walletField: string }) {
+  const v = field.walletField.trim()
+  if (!v) return
+  const alreadyPrefixed = KNOWN_PREFIXES.some((p) => v.startsWith(p))
+  if (!alreadyPrefixed) {
+    field.walletField = `user.${v}`
+  }
+}
+
 // Quick-add presets
 const PRESETS = [
   { sourceField: s.meta.accountId ? 'parcelNumber' : 'identifier', walletField: 'user.identifier', type: 'string' as FieldType, required: true },
@@ -68,17 +84,16 @@ function addPreset(preset: typeof PRESETS[0]) {
           placeholder="parcelStatus"
           class="input font-mono text-sm"
         />
-        <select v-model="field.walletField" class="input text-sm font-mono">
-          <option value="" disabled>Choisir…</option>
-          <optgroup label="Champs Wallet Brevo">
-            <option v-for="wf in WALLET_FIELDS" :key="wf.field" :value="wf.field">
-              {{ wf.field }}
-            </option>
-          </optgroup>
-          <optgroup label="Personnalisé">
-            <option value="__custom__">+ Saisir manuellement</option>
-          </optgroup>
-        </select>
+        <input
+          v-model="field.walletField"
+          type="text"
+          list="wallet-fields-list"
+          placeholder="user.status"
+          class="input text-sm font-mono"
+          @blur="normalizeWalletField(field)"
+        />
+        <datalist id="wallet-fields-list">
+          <option v-for="wf in WALLET_FIELDS" :key="wf.field" :value="wf.field" /></datalist>
         <select v-model="field.type" class="input text-sm">
           <option v-for="t in TYPES" :key="t" :value="t">{{ t }}</option>
         </select>

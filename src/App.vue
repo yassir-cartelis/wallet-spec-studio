@@ -169,9 +169,9 @@ const scoreColor = computed(() => {
       <!-- Top bar -->
       <header class="sticky top-0 z-20 bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4">
         <!-- Logo — click to go back to welcome -->
-        <button @click="showWelcome = true" class="flex items-center gap-2 hover:opacity-70 transition-opacity">
-          <span class="text-lg font-bold text-violet-600">Wallet</span>
-          <span class="text-lg font-light text-gray-400">Spec Studio</span>
+        <button @click="showWelcome = true" class="flex items-center gap-3 hover:opacity-70 transition-opacity">
+          <span class="text-[11px] font-bold tracking-widest text-white bg-brand-600 px-2 py-0.5 rounded">CARTELIS</span>
+          <span class="text-sm font-semibold text-brand-900">Wallet Spec Studio</span>
         </button>
 
         <div class="flex-1" />
@@ -195,14 +195,14 @@ const scoreColor = computed(() => {
         <!-- AI import -->
         <button
           @click="showAiModal = true"
-          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-violet-600 text-white hover:bg-violet-700 transition-colors font-medium"
+          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-brand-600 text-white hover:bg-brand-700 transition-colors font-medium"
           title="Générer une spec depuis des documents avec GPT-4o"
         >✦ IA</button>
 
         <!-- JSON import -->
         <button
           @click="triggerImport()"
-          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:border-violet-400 hover:text-violet-600 transition-colors"
+          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
           title="Importer un fichier JSON de spec"
         >↑ Importer</button>
 
@@ -222,14 +222,14 @@ const scoreColor = computed(() => {
           <div class="px-3 mb-3">
             <button
               @click="showGuide = true"
-              class="w-full rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-left px-4 py-3 transition-colors group"
+              class="w-full rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-left px-4 py-3 transition-colors group"
             >
               <div class="flex items-center justify-between mb-1">
                 <span class="text-lg">📖</span>
-                <span class="text-violet-300 text-xs group-hover:translate-x-0.5 transition-transform">→</span>
+                <span class="text-brand-300 text-xs group-hover:translate-x-0.5 transition-transform">→</span>
               </div>
               <p class="text-xs font-semibold leading-snug">Premier projet Wallet ?</p>
-              <p class="text-[11px] text-violet-300 mt-0.5">Guide + schéma des flux</p>
+              <p class="text-[11px] text-brand-300 mt-0.5">Guide + schéma des flux</p>
             </button>
           </div>
 
@@ -241,12 +241,12 @@ const scoreColor = computed(() => {
                 @click="goTo(step.id)"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors text-sm"
                 :class="currentStep === step.id
-                  ? 'bg-violet-50 text-violet-700 font-medium'
+                  ? 'bg-brand-50 text-brand-700 font-medium'
                   : 'text-gray-600 hover:bg-gray-50'"
               >
                 <span class="text-base w-5 text-center">{{ step.icon }}</span>
                 <span class="flex-1 truncate">{{ step.label }}</span>
-                <span v-if="currentStep === step.id" class="w-1.5 h-1.5 rounded-full bg-violet-500" />
+                <span v-if="currentStep === step.id" class="w-1.5 h-1.5 rounded-full bg-brand-500" />
               </button>
             </li>
           </ul>
@@ -267,7 +267,7 @@ const scoreColor = computed(() => {
             <button
               @click="next()"
               :disabled="currentStepIndex === STEPS.length - 1"
-              class="px-4 py-2 text-sm rounded-lg bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              class="px-4 py-2 text-sm rounded-lg bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >Suivant →</button>
           </div>
         </main>

@@ -2,7 +2,7 @@
 defineEmits<{ close: [] }>()
 
 const flows = [
-  { color: 'bg-violet-500', label: 'Création',        desc: 'Carte créée au 1er événement' },
+  { color: 'bg-brand-500', label: 'Création',        desc: 'Carte créée au 1er événement' },
   { color: 'bg-blue-500',   label: 'Mise à jour',     desc: 'Statut synchronisé en temps réel' },
   { color: 'bg-green-500',  label: 'Opt-in',          desc: "Confirmation d'installation wallet" },
   { color: 'bg-orange-400', label: 'Anonymisation',   desc: 'Suppression RGPD des données' },
@@ -75,7 +75,7 @@ const tips = [
       <!-- Header -->
       <div class="px-8 py-6 border-b border-gray-100 flex items-start justify-between">
         <div>
-          <p class="text-xs font-medium text-violet-600 uppercase tracking-widest mb-1">Guide</p>
+          <p class="text-xs font-medium text-brand-600 uppercase tracking-widest mb-1">Guide</p>
           <h2 class="text-2xl font-semibold text-gray-900">C'est ton premier projet Wallet ?</h2>
           <p class="text-gray-500 text-sm mt-1">Tout ce qu'il faut savoir avant de se lancer.</p>
         </div>
@@ -121,7 +121,7 @@ const tips = [
               <div class="flex flex-col items-center justify-center px-2 gap-1 min-w-[80px]">
                 <div class="flex flex-col items-center gap-0.5 text-gray-400">
                   <span class="text-xs">Création</span>
-                  <span class="text-[10px] text-violet-400 font-medium">POST /cards</span>
+                  <span class="text-[10px] text-brand-400 font-medium">POST /cards</span>
                   <span class="text-base">→</span>
                 </div>
                 <div class="flex flex-col items-center gap-0.5 text-gray-400">
@@ -138,15 +138,15 @@ const tips = [
 
               <!-- Wallet Brevo -->
               <div class="flex flex-col gap-2 items-center flex-1">
-                <div class="w-full rounded-lg border-2 border-violet-200 bg-violet-50 p-3 text-center">
+                <div class="w-full rounded-lg border-2 border-brand-200 bg-brand-50 p-3 text-center">
                   <div class="text-2xl mb-1">⚡</div>
-                  <p class="font-semibold text-violet-800 text-xs">Wallet Brevo</p>
-                  <p class="text-violet-400 mt-0.5">Captain Wallet</p>
+                  <p class="font-semibold text-brand-800 text-xs">Wallet Brevo</p>
+                  <p class="text-brand-400 mt-0.5">Captain Wallet</p>
                 </div>
                 <div class="text-center text-gray-400 text-xs px-2">
                   <p>Cartes digitales</p>
-                  <p class="font-mono bg-violet-50 rounded px-1 mt-0.5 text-violet-600">user.identifier</p>
-                  <p class="font-mono bg-violet-50 rounded px-1 mt-0.5 text-violet-600">user.status</p>
+                  <p class="font-mono bg-brand-50 rounded px-1 mt-0.5 text-brand-600">user.identifier</p>
+                  <p class="font-mono bg-brand-50 rounded px-1 mt-0.5 text-brand-600">user.status</p>
                 </div>
               </div>
 
@@ -192,7 +192,7 @@ const tips = [
               <div class="flex-1">
                 <div class="flex items-center gap-2 mb-0.5">
                   <p class="text-sm font-medium text-gray-900">{{ concept.term }}</p>
-                  <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-violet-100 text-violet-600">{{ concept.tag }}</span>
+                  <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-brand-100 text-brand-600">{{ concept.tag }}</span>
                 </div>
                 <p class="text-xs text-gray-500 leading-relaxed">{{ concept.def }}</p>
               </div>
@@ -205,7 +205,7 @@ const tips = [
           <h3 class="text-base font-semibold text-gray-900 mb-3">Comment utiliser cet outil</h3>
           <div class="space-y-2">
             <div v-for="(step, i) in guideSteps" :key="i" class="flex gap-3 items-start">
-              <div class="w-6 h-6 rounded-full bg-violet-600 text-white text-xs flex items-center justify-center shrink-0 mt-0.5 font-medium">{{ i + 1 }}</div>
+              <div class="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center shrink-0 mt-0.5 font-medium">{{ i + 1 }}</div>
               <div>
                 <p class="text-sm font-medium text-gray-800">{{ step.label }}</p>
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ step.desc }}</p>
@@ -228,7 +228,7 @@ const tips = [
 
       <!-- Footer -->
       <div class="px-8 py-4 border-t border-gray-100 flex justify-end">
-        <button @click="$emit('close')" class="px-5 py-2 rounded-lg bg-violet-600 text-white text-sm hover:bg-violet-700 transition-colors">
+        <button @click="$emit('close')" class="px-5 py-2 rounded-lg bg-brand-600 text-white text-sm hover:bg-brand-700 transition-colors">
           C'est parti →
         </button>
       </div>

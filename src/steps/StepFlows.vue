@@ -36,7 +36,7 @@ function payloadFor(id: FlowName): string {
         v-for="flow in FLOW_DEFS"
         :key="flow.id"
         class="rounded-lg border transition-all"
-        :class="s.flows[flow.id].enabled ? 'border-violet-200 bg-white' : 'border-gray-100 bg-gray-50'"
+        :class="s.flows[flow.id].enabled ? 'border-brand-200 bg-white' : 'border-gray-100 bg-gray-50'"
       >
         <!-- Flow header -->
         <div class="flex items-center gap-3 p-4">
@@ -56,7 +56,7 @@ function payloadFor(id: FlowName): string {
               <input type="checkbox" v-model="s.flows[flow.id].enabled" class="sr-only" />
               <div
                 class="w-10 h-6 rounded-full transition-colors"
-                :class="s.flows[flow.id].enabled ? 'bg-violet-600' : 'bg-gray-200'"
+                :class="s.flows[flow.id].enabled ? 'bg-brand-600' : 'bg-gray-200'"
               ></div>
               <div
                 class="absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform"
@@ -88,8 +88,8 @@ function payloadFor(id: FlowName): string {
                     @click="store.toggleFlowField(flow.id, field.id)"
                     class="px-2.5 py-1 rounded border text-xs font-mono transition-colors"
                     :class="s.flows[flow.id].fields.includes(field.id)
-                      ? 'bg-violet-600 text-white border-violet-600'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-violet-300'"
+                      ? 'bg-brand-600 text-white border-brand-600'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-brand-300'"
                   >
                     {{ field.walletField || field.sourceField || '?' }}
                   </button>

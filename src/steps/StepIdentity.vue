@@ -57,8 +57,8 @@ function toggleChannel(ch: string) {
           @click="toggleChannel(ch)"
           class="px-3 py-1.5 rounded-full text-sm border transition-colors"
           :class="s.entry.channels.includes(ch)
-            ? 'bg-violet-600 text-white border-violet-600'
-            : 'bg-white text-gray-500 border-gray-200 hover:border-violet-300'"
+            ? 'bg-brand-600 text-white border-brand-600'
+            : 'bg-white text-gray-500 border-gray-200 hover:border-brand-300'"
         >
           {{ ch }}
         </button>

@@ -95,14 +95,14 @@ function fileIcon(name: string): string {
           <div
             ref="dropzone"
             class="border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer"
-            :class="isDragging ? 'border-violet-400 bg-violet-50' : 'border-gray-200 hover:border-violet-300 hover:bg-gray-50'"
+            :class="isDragging ? 'border-brand-400 bg-brand-50' : 'border-gray-200 hover:border-brand-300 hover:bg-gray-50'"
             @click="fileInput?.click()"
             @dragover.prevent="isDragging = true"
             @dragleave="isDragging = false"
             @drop.prevent="onDrop"
           >
             <p class="text-3xl mb-2">{{ isDragging ? '📂' : '☁️' }}</p>
-            <p class="text-sm text-gray-500">Glisse tes fichiers ici ou <span class="text-violet-600">parcourir</span></p>
+            <p class="text-sm text-gray-500">Glisse tes fichiers ici ou <span class="text-brand-600">parcourir</span></p>
             <p class="text-xs text-gray-400 mt-1">PDF · DOCX · TXT · MD — plusieurs fichiers acceptés</p>
             <input ref="fileInput" type="file" :accept="ACCEPTED.join(',')" multiple class="hidden" @change="addFiles(($event.target as HTMLInputElement).files)" />
           </div>
@@ -149,7 +149,7 @@ function fileIcon(name: string): string {
 
         <!-- Loading state -->
         <div v-if="status !== 'idle' && status !== 'error'" class="flex items-center gap-2 flex-1">
-          <div class="w-4 h-4 rounded-full border-2 border-violet-600 border-t-transparent animate-spin shrink-0" />
+          <div class="w-4 h-4 rounded-full border-2 border-brand-600 border-t-transparent animate-spin shrink-0" />
           <span class="text-sm text-gray-500">{{ statusLabel }}</span>
         </div>
         <div v-else class="flex-1" />
@@ -160,7 +160,7 @@ function fileIcon(name: string): string {
         <button
           @click="submit"
           :disabled="!canSubmit"
-          class="px-5 py-2 text-sm rounded-lg bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+          class="px-5 py-2 text-sm rounded-lg bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
         >
           Analyser avec GPT-4o →
         </button>

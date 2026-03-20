@@ -64,17 +64,17 @@ const scoreBg = computed(() => {
 
     <!-- Export buttons -->
     <div class="grid grid-cols-3 gap-3">
-      <button @click="exportJson()" class="flex flex-col items-center gap-1 p-4 rounded-xl border border-gray-200 bg-white hover:border-violet-300 hover:shadow-sm transition-all text-gray-700">
+      <button @click="exportJson()" class="flex flex-col items-center gap-1 p-4 rounded-xl border border-gray-200 bg-white hover:border-brand-300 hover:shadow-sm transition-all text-gray-700">
         <span class="text-lg">{ }</span>
         <span class="font-medium">JSON</span>
         <span class="text-xs text-gray-400">Config complète</span>
       </button>
-      <button @click="exportMarkdown()" class="flex flex-col items-center gap-1 p-4 rounded-xl border border-gray-200 bg-white hover:border-violet-300 hover:shadow-sm transition-all text-gray-700">
+      <button @click="exportMarkdown()" class="flex flex-col items-center gap-1 p-4 rounded-xl border border-gray-200 bg-white hover:border-brand-300 hover:shadow-sm transition-all text-gray-700">
         <span class="text-lg">#</span>
         <span class="font-medium">Markdown</span>
         <span class="text-xs text-gray-400">Spec lisible</span>
       </button>
-      <button @click="printSpec()" class="flex flex-col items-center gap-1 p-4 rounded-xl border border-gray-200 bg-white hover:border-violet-300 hover:shadow-sm transition-all text-gray-700">
+      <button @click="printSpec()" class="flex flex-col items-center gap-1 p-4 rounded-xl border border-gray-200 bg-white hover:border-brand-300 hover:shadow-sm transition-all text-gray-700">
         <span class="text-lg">🖨️</span>
         <span class="font-medium">PDF</span>
         <span class="text-xs text-gray-400">Imprimer / sauvegarder</span>

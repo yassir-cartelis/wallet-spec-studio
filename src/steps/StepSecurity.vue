@@ -62,8 +62,8 @@ const url = \`\${baseUrl}?user[identifier]=\${identifier}\`;`
           @click="s.security.mode = mode.value"
           class="p-4 rounded-lg border text-left transition-all"
           :class="s.security.mode === mode.value
-            ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500'
-            : 'border-gray-200 bg-white hover:border-violet-200'"
+            ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
+            : 'border-gray-200 bg-white hover:border-brand-200'"
         >
           <div class="flex items-center justify-between mb-2">
             <span class="font-medium text-sm text-gray-900">{{ mode.label }}</span>
@@ -72,7 +72,7 @@ const url = \`\${baseUrl}?user[identifier]=\${identifier}\`;`
               :class="{
                 'bg-red-100 text-red-600': mode.badge === 'low',
                 'bg-green-100 text-green-600': mode.badge === 'high',
-                'bg-violet-100 text-violet-600': mode.badge === 'max',
+                'bg-brand-100 text-brand-600': mode.badge === 'max',
               }"
             >{{ mode.badge }}</span>
           </div>
@@ -89,7 +89,7 @@ const url = \`\${baseUrl}?user[identifier]=\${identifier}\`;`
           :key="opt"
           class="flex items-center gap-2 cursor-pointer"
         >
-          <input type="radio" v-model="s.security.computedBy" :value="opt" class="text-violet-600" />
+          <input type="radio" v-model="s.security.computedBy" :value="opt" class="text-brand-600" />
           <span class="text-sm text-gray-700">{{ opt === 'client' ? 'Client (Brevo / CRM)' : 'Serveur (backend client)' }}</span>
         </label>
       </div>

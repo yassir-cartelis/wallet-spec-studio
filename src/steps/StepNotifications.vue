@@ -42,7 +42,7 @@ const TRIGGER_PRESETS = [
                 v-for="preset in TRIGGER_PRESETS"
                 :key="preset"
                 @click="notif.trigger = preset"
-                class="px-2 py-0.5 rounded text-xs border border-gray-200 text-gray-500 hover:border-violet-300 hover:text-violet-600 font-mono transition-colors bg-white"
+                class="px-2 py-0.5 rounded text-xs border border-gray-200 text-gray-500 hover:border-brand-300 hover:text-brand-600 font-mono transition-colors bg-white"
               >{{ preset }}</button>
             </div>
           </div>

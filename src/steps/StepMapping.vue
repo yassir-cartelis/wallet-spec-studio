@@ -61,7 +61,7 @@ function addPreset(preset: typeof PRESETS[0]) {
           class="px-2.5 py-1 rounded border text-xs font-mono transition-colors"
           :class="s.mapping.some(f => f.walletField === preset.walletField)
             ? 'bg-gray-100 text-gray-300 border-gray-100 cursor-default'
-            : 'bg-white text-gray-600 border-gray-200 hover:border-violet-400 hover:text-violet-600'"
+            : 'bg-white text-gray-600 border-gray-200 hover:border-brand-400 hover:text-brand-600'"
         >
           {{ preset.walletField }}
         </button>
@@ -105,7 +105,7 @@ function addPreset(preset: typeof PRESETS[0]) {
           <option v-for="t in TYPES" :key="t" :value="t">{{ t }}</option>
         </select>
         <div class="flex justify-center">
-          <input type="checkbox" v-model="field.required" class="h-4 w-4 rounded accent-violet-600" />
+          <input type="checkbox" v-model="field.required" class="h-4 w-4 rounded accent-brand-600" />
         </div>
         <button
           @click="store.removeMapping(field.id)"

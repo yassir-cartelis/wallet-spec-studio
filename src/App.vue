@@ -5,6 +5,15 @@ import { useValidation } from '@/composables/useValidation'
 import { STEPS } from '@/config/steps'
 import type { StepId } from '@/types/spec'
 
+// ── AI import modal ───────────────────────────────────────────────────────────
+const showAiModal = ref(false)
+
+function onAiImported(projectName: string) {
+  showAiModal.value = false
+  showToast(`✓ Spec générée — ${projectName}`, 'success')
+  goTo('scope')
+}
+
 // ── Import feedback toast ─────────────────────────────────────────────────────
 type Toast = { message: string; type: 'success' | 'error' }
 const toast = ref<Toast | null>(null)
@@ -56,6 +65,7 @@ import StepFlows from '@/steps/StepFlows.vue'
 import StepNotifications from '@/steps/StepNotifications.vue'
 import StepErrors from '@/steps/StepErrors.vue'
 import StepExport from '@/steps/StepExport.vue'
+import AiImportModal from '@/components/AiImportModal.vue'
 
 const STEP_COMPONENTS: Record<StepId, unknown> = {
   scope: StepScope,
@@ -98,6 +108,9 @@ const scoreColor = computed(() => {
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col">
 
+    <!-- AI Import modal -->
+    <AiImportModal v-if="showAiModal" @close="showAiModal = false" @imported="onAiImported" />
+
     <!-- Toast -->
     <transition name="toast">
       <div
@@ -136,6 +149,15 @@ const scoreColor = computed(() => {
         </div>
         <span class="text-xs font-medium text-gray-500">{{ score }}%</span>
       </div>
+
+      <!-- AI import button -->
+      <button
+        @click="showAiModal = true"
+        class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-violet-600 text-white hover:bg-violet-700 transition-colors font-medium"
+        title="Générer une spec depuis des documents avec GPT-4o"
+      >
+        ✦ IA
+      </button>
 
       <!-- Import button -->
       <button

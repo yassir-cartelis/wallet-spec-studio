@@ -14,7 +14,6 @@ const emit = defineEmits<{
 
 const projectsStore = useProjectsStore()
 
-// Category filter
 const activeCategory = ref<string | null>(null)
 
 const filteredProjects = computed(() =>
@@ -28,7 +27,6 @@ const categories = computed(() => {
   return Array.from(cats).sort()
 })
 
-// Duplicate modal
 const duplicatingProject = ref<SavedProject | null>(null)
 
 function startDuplicate(project: SavedProject) {
@@ -45,7 +43,6 @@ function confirmDuplicate(newName: string) {
   duplicatingProject.value = null
 }
 
-// Load directly
 function loadProject(project: SavedProject) {
   emit('loadProject', project.spec)
 }
@@ -54,7 +51,6 @@ function deleteProject(project: SavedProject) {
   projectsStore.remove(project.id)
 }
 
-// Category color
 const CATEGORY_COLORS: Record<string, string> = {
   'Logistique':    'bg-brand-100 text-brand-700',
   'Retail':        'bg-green-100 text-green-700',
@@ -67,12 +63,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 function categoryColor(cat: string) {
-  // Normalize key by removing accents for lookup
   const key = cat.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   return CATEGORY_COLORS[key] ?? 'bg-brand-100 text-brand-700'
 }
 
-// Stats
 function flowCount(p: SavedProject) {
   return Object.values(p.spec.flows).filter((f) => f.enabled).length
 }
@@ -80,12 +74,29 @@ function flowCount(p: SavedProject) {
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
+
+const valueProps = [
+  {
+    icon: '🗂️',
+    title: 'Spec structurée en 8 étapes',
+    desc: "Scope, mapping, flux, sécurité, notifications, erreurs — tout dans l'ordre, rien d'oublié.",
+  },
+  {
+    icon: '♻️',
+    title: 'Bibliothèque de use-cases',
+    desc: 'Duplique un projet existant (suivi colis, fidélité, billet…) et adapte-le en quelques minutes.',
+  },
+  {
+    icon: '📤',
+    title: 'Export prêt pour les devs',
+    desc: 'JSON structuré ou Markdown lisible — directement transmissible à l\'équipe technique.',
+  },
+]
 </script>
 
 <template>
   <div class="min-h-screen bg-brand-200">
 
-    <!-- Duplicate name modal -->
     <NameModal
       v-if="duplicatingProject"
       :initial="duplicatingProject.name"
@@ -94,15 +105,26 @@ function formatDate(iso: string) {
       @cancel="duplicatingProject = null"
     />
 
-    <!-- Hero section -->
+    <!-- HERO -->
     <div class="flex flex-col items-center px-6 pt-14 pb-0">
 
-      <!-- Logo -->
-      <div class="flex flex-col items-center gap-3 mb-12">
+      <!-- Brand -->
+      <div class="flex flex-col items-center gap-2 mb-8">
         <span class="text-[11px] font-bold tracking-widest text-white bg-brand-700 px-3 py-1 rounded">CARTELIS</span>
-        <div class="flex items-center gap-2">
-          <span class="text-2xl font-bold text-brand-900">Wallet</span>
-          <span class="text-2xl font-light text-brand-600">Spec Studio</span>
+        <h1 class="text-4xl font-bold text-brand-900">Wallet Studio</h1>
+        <p class="text-base text-brand-600 font-medium">L'outil de cadrage pour vos intégrations Brevo Wallet</p>
+      </div>
+
+      <!-- Value props -->
+      <div class="w-full max-w-3xl grid grid-cols-3 gap-3 mb-10">
+        <div
+          v-for="vp in valueProps"
+          :key="vp.title"
+          class="bg-white/70 border border-white rounded-2xl px-5 py-4"
+        >
+          <div class="text-2xl mb-2">{{ vp.icon }}</div>
+          <p class="text-sm font-bold text-brand-900 mb-1">{{ vp.title }}</p>
+          <p class="text-xs text-brand-600 leading-relaxed">{{ vp.desc }}</p>
         </div>
       </div>
 
@@ -115,17 +137,17 @@ function formatDate(iso: string) {
           <div class="flex items-start justify-between mb-5">
             <div class="flex items-center gap-3">
               <span class="text-3xl">✦</span>
-              <span class="text-xs font-semibold tracking-widest text-accent-200 uppercase">Propulse par GPT-4o</span>
+              <span class="text-xs font-semibold tracking-widest text-accent-200 uppercase">Propulsé par GPT-4o</span>
             </div>
             <span class="text-accent-300 text-lg group-hover:translate-x-1 transition-transform">→</span>
           </div>
-          <h1 class="text-2xl font-bold leading-snug mb-3">
+          <h2 class="text-2xl font-bold leading-snug mb-3">
             L'IA Cartelis analyse tes documents<br />
             <span class="text-accent-200">et initialise ta spec en quelques secondes</span>
-          </h1>
+          </h2>
           <p class="text-accent-100 text-sm leading-relaxed max-w-xl">
-            Depose ton brief client, un dictionnaire de donnees, ou tes notes d'atelier.
-            GPT-4o extrait les informations cles et pre-remplit les 8 etapes de la spec pour toi.
+            Dépose ton brief client, un dictionnaire de données, ou tes notes d'atelier.
+            GPT-4o extrait les informations clés et pré-remplit les 8 étapes de la spec pour toi.
           </p>
           <div class="mt-6 flex items-center gap-3">
             <span class="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-medium">PDF</span>
@@ -133,7 +155,7 @@ function formatDate(iso: string) {
             <span class="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-medium">TXT</span>
             <span class="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-medium">MD</span>
             <span class="ml-auto bg-white text-accent-700 text-sm px-5 py-2 rounded-lg font-semibold group-hover:bg-accent-50 transition-colors">
-              Deposer mes documents →
+              Déposer mes documents →
             </span>
           </div>
         </button>
@@ -144,7 +166,7 @@ function formatDate(iso: string) {
             @click="emit('start')"
             class="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-white/50 bg-white/70 text-brand-900 hover:bg-white hover:border-brand-400 transition-all text-sm font-medium"
           >
-            ✏️ Partir de zero
+            ✏️ Partir de zéro
           </button>
           <button
             @click="emit('openGuide')"
@@ -163,13 +185,12 @@ function formatDate(iso: string) {
       </div>
     </div>
 
-    <!-- Library section -->
+    <!-- LIBRARY -->
     <div class="max-w-5xl mx-auto px-6 mt-16 pb-16">
 
-      <!-- Section header -->
       <div class="flex items-end justify-between mb-6">
         <div>
-          <h2 class="text-xl font-bold text-brand-900">📚 Bibliotheque de use-cases</h2>
+          <h2 class="text-xl font-bold text-brand-900">📚 Bibliothèque de use-cases</h2>
           <p class="text-sm text-brand-700 mt-0.5">Duplique un template, renomme-le et c'est parti.</p>
         </div>
         <span class="text-xs text-brand-600 font-medium">{{ projectsStore.projects.length }} templates</span>
@@ -202,20 +223,13 @@ function formatDate(iso: string) {
           :key="project.id"
           class="group bg-white rounded-2xl border border-brand-100 hover:border-brand-300 hover:shadow-lg transition-all flex flex-col overflow-hidden"
         >
-          <!-- Card body -->
           <div class="p-5 flex-1">
             <div class="flex items-start justify-between mb-3">
-              <span
-                class="text-[11px] font-bold px-2.5 py-1 rounded-full"
-                :class="categoryColor(project.category)"
-              >{{ project.category }}</span>
+              <span class="text-[11px] font-bold px-2.5 py-1 rounded-full" :class="categoryColor(project.category)">{{ project.category }}</span>
               <span v-if="project.isDefault" class="text-[10px] text-brand-400 font-medium">Cartelis ✦</span>
             </div>
-
             <h3 class="font-bold text-brand-900 text-sm mb-2 leading-snug">{{ project.name }}</h3>
             <p class="text-xs text-brand-600 leading-relaxed line-clamp-2">{{ project.description }}</p>
-
-            <!-- Stats -->
             <div class="flex items-center gap-3 mt-4 pt-3 border-t border-brand-50">
               <div class="text-center">
                 <p class="text-sm font-bold text-brand-800">{{ project.spec.mapping.length }}</p>
@@ -234,36 +248,16 @@ function formatDate(iso: string) {
               <span class="ml-auto text-[10px] text-brand-300">{{ formatDate(project.updatedAt) }}</span>
             </div>
           </div>
-
-          <!-- Card actions -->
           <div class="border-t border-brand-50 px-4 py-3 flex items-center gap-2 bg-brand-50/50">
-            <button
-              @click="startDuplicate(project)"
-              class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-accent-500 text-white text-xs font-bold hover:bg-accent-600 transition-colors"
-            >
-              ⧉ Dupliquer
-            </button>
-            <button
-              @click="loadProject(project)"
-              class="px-3 py-2.5 rounded-lg border border-brand-200 text-brand-700 text-xs font-medium hover:bg-brand-100 transition-colors"
-              title="Charger tel quel"
-            >
-              Charger
-            </button>
-            <button
-              v-if="!project.isDefault"
-              @click="deleteProject(project)"
-              class="px-2 py-2 rounded-lg text-brand-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-              title="Supprimer"
-            >
-              ✕
-            </button>
+            <button @click="startDuplicate(project)" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-accent-500 text-white text-xs font-bold hover:bg-accent-600 transition-colors">⧉ Dupliquer</button>
+            <button @click="loadProject(project)" class="px-3 py-2.5 rounded-lg border border-brand-200 text-brand-700 text-xs font-medium hover:bg-brand-100 transition-colors" title="Charger tel quel">Charger</button>
+            <button v-if="!project.isDefault" @click="deleteProject(project)" class="px-2 py-2 rounded-lg text-brand-300 hover:text-red-400 hover:bg-red-50 transition-colors" title="Supprimer">✕</button>
           </div>
         </div>
       </div>
 
       <div v-else class="text-center py-16 text-brand-500 text-sm">
-        Aucun use-case dans cette categorie.
+        Aucun use-case dans cette catégorie.
       </div>
 
     </div>

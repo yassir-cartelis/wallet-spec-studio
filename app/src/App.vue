@@ -209,7 +209,7 @@ const scoreColor = computed(() => {
         <!-- Logo — click to go back to welcome -->
         <button @click="showWelcome = true" class="flex items-center gap-3 hover:opacity-70 transition-opacity">
           <span class="text-[11px] font-bold tracking-widest text-white bg-brand-700 px-2 py-0.5 rounded">CARTELIS</span>
-          <span class="text-sm font-semibold text-brand-900">Wallet Spec Studio</span>
+          <span class="text-sm font-semibold text-brand-900">Wallet Studio</span>
         </button>
 
         <div class="flex-1" />
@@ -264,14 +264,14 @@ const scoreColor = computed(() => {
           <div class="px-3 mb-3">
             <button
               @click="showGuide = true"
-              class="w-full rounded-xl bg-accent-600 hover:bg-accent-700 text-white text-left px-4 py-3 transition-colors group"
+              class="w-full rounded-xl bg-brand-700 hover:bg-brand-600 text-white text-left px-4 py-3 transition-colors group"
             >
               <div class="flex items-center justify-between mb-1">
                 <span class="text-lg">📖</span>
-                <span class="text-accent-200 text-xs group-hover:translate-x-0.5 transition-transform">→</span>
+                <span class="text-brand-300 text-xs group-hover:translate-x-0.5 transition-transform">→</span>
               </div>
               <p class="text-xs font-semibold leading-snug">Premier projet Wallet ?</p>
-              <p class="text-[11px] text-accent-200 mt-0.5">Guide + schéma des flux</p>
+              <p class="text-[11px] text-brand-300 mt-0.5">Guide + schéma des flux</p>
             </button>
           </div>
 

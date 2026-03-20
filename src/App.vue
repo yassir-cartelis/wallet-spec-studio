@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useSpecStore } from '@/stores/spec'
+import { useProjectsStore } from '@/stores/projects'
 import { useValidation } from '@/composables/useValidation'
 import { STEPS } from '@/config/steps'
-import type { StepId } from '@/types/spec'
+import type { StepId, SpecState } from '@/types/spec'
 
 // Step components
 import StepScope from '@/steps/StepScope.vue'
@@ -30,11 +31,11 @@ const STEP_COMPONENTS: Record<StepId, unknown> = {
 }
 
 const store = useSpecStore()
+const projectsStore = useProjectsStore()
 const { score } = useValidation()
 const currentStep = ref<StepId>('scope')
 
 // ── Welcome / guide state ─────────────────────────────────────────────────────
-// Show welcome if no project has been started yet
 const hasProject = computed(() => !!store.state.meta.projectName || store.state.mapping.length > 0)
 const showWelcome = ref(!hasProject.value)
 const showGuide = ref(false)
@@ -58,6 +59,13 @@ function onWelcomeImport() {
   triggerImport()
 }
 
+function onLoadProject(spec: SpecState) {
+  store.importSpec(spec)
+  enterApp()
+  goTo('scope')
+  showToast(`✓ Projet chargé — ${spec.meta.projectName}`, 'success')
+}
+
 // ── AI import modal ───────────────────────────────────────────────────────────
 const showAiModal = ref(false)
 
@@ -78,7 +86,14 @@ function showToast(message: string, type: Toast['type']) {
   toastTimer = setTimeout(() => (toast.value = null), 3000)
 }
 
-// ── JSON import ───────────────────────────────────────────────────────────────
+// ── Save current spec to library ──────────────────────────────────────────────
+function saveCurrentSpec() {
+  const savedId = projectsStore.saveSpec(store.state)
+  store.state.meta.savedId = savedId
+  showToast(`✓ Sauvegardé dans la bibliothèque`, 'success')
+}
+
+// ── JSON import (hidden — accessible via welcome screen or sidebar) ───────────
 const fileInput = ref<HTMLInputElement | null>(null)
 
 function triggerImport() {
@@ -150,7 +165,7 @@ const scoreColor = computed(() => {
       </div>
     </transition>
 
-    <!-- Hidden file input -->
+    <!-- Hidden file input (JSON import) -->
     <input ref="fileInput" type="file" accept=".json,application/json" class="hidden" @change="onFileSelected" />
 
     <!-- Welcome screen -->
@@ -160,6 +175,7 @@ const scoreColor = computed(() => {
         @open-ai="onWelcomeAi"
         @open-import="onWelcomeImport"
         @open-guide="showGuide = true"
+        @load-project="onLoadProject"
       />
     </template>
 
@@ -199,12 +215,13 @@ const scoreColor = computed(() => {
           title="Générer une spec depuis des documents avec GPT-4o"
         >✦ IA</button>
 
-        <!-- JSON import -->
+        <!-- Save to library -->
         <button
-          @click="triggerImport()"
-          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
-          title="Importer un fichier JSON de spec"
-        >↑ Importer</button>
+          @click="saveCurrentSpec"
+          :disabled="!store.state.meta.projectName"
+          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Sauvegarder dans la bibliothèque de use-cases"
+        >💾 Sauvegarder</button>
 
         <button
           @click="store.reset(); showWelcome = true"
@@ -250,6 +267,15 @@ const scoreColor = computed(() => {
               </button>
             </li>
           </ul>
+
+          <!-- Hidden JSON import — bottom of sidebar -->
+          <div class="px-3 pt-3 border-t border-gray-100 mt-2">
+            <button
+              @click="triggerImport()"
+              class="w-full text-xs text-gray-300 hover:text-gray-500 text-left px-2 py-1 transition-colors"
+              title="Importer un fichier JSON de spec"
+            >↑ Importer un JSON…</button>
+          </div>
         </nav>
 
         <!-- Main content -->

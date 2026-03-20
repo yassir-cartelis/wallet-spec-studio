@@ -15,6 +15,19 @@ export type StepId =
   | 'errors'
   | 'export'
 
+export const USE_CASE_CATEGORIES = [
+  'Logistique',
+  'Retail',
+  'Événementiel',
+  'Commerce',
+  'Mobilité',
+  'Finance',
+  'Santé',
+  'Autre',
+] as const
+
+export type UseCaseCategory = typeof USE_CASE_CATEGORIES[number]
+
 // ─── Field mapping ────────────────────────────────────────────────────────────
 
 export interface FieldMapping {
@@ -81,6 +94,9 @@ export interface SpecState {
     accountId: string
     projectId: string
     timezone: string
+    description: string         // use-case description / context
+    useCaseCategory: string     // for library organisation
+    savedId?: string            // id in the projects library (set on first save)
     createdAt?: string
     updatedAt?: string
   }
@@ -103,6 +119,19 @@ export interface SpecState {
   flows: Record<FlowName, FlowContract>
   notifications: Notification[]
   errors: ErrorRule[]
+}
+
+// ─── Saved project (library) ─────────────────────────────────────────────────
+
+export interface SavedProject {
+  id: string
+  name: string
+  description: string
+  category: string
+  spec: SpecState
+  createdAt: string
+  updatedAt: string
+  isDefault?: boolean       // pre-populated by Cartelis, cannot be deleted
 }
 
 // ─── Step definition ──────────────────────────────────────────────────────────

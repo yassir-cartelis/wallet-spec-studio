@@ -15,6 +15,8 @@ const DEFAULT_STATE: SpecState = {
     accountId: '',
     projectId: 'fr_FR',
     timezone: 'Europe/Paris',
+    description: '',
+    useCaseCategory: '',
   },
   entry: {
     pivotVar: '',

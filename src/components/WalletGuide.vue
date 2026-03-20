@@ -205,7 +205,7 @@ const tips = [
           <h3 class="text-base font-semibold text-gray-900 mb-3">Comment utiliser cet outil</h3>
           <div class="space-y-2">
             <div v-for="(step, i) in guideSteps" :key="i" class="flex gap-3 items-start">
-              <div class="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center shrink-0 mt-0.5 font-medium">{{ i + 1 }}</div>
+              <div class="w-6 h-6 rounded-full bg-brand-700 text-white text-xs flex items-center justify-center shrink-0 mt-0.5 font-medium">{{ i + 1 }}</div>
               <div>
                 <p class="text-sm font-medium text-gray-800">{{ step.label }}</p>
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ step.desc }}</p>
@@ -228,7 +228,7 @@ const tips = [
 
       <!-- Footer -->
       <div class="px-8 py-4 border-t border-gray-100 flex justify-end">
-        <button @click="$emit('close')" class="px-5 py-2 rounded-lg bg-brand-600 text-white text-sm hover:bg-brand-700 transition-colors">
+        <button @click="$emit('close')" class="px-5 py-2 rounded-lg bg-accent-600 text-white text-sm hover:bg-accent-700 transition-colors">
           C'est parti →
         </button>
       </div>

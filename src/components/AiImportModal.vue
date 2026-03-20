@@ -95,7 +95,7 @@ function fileIcon(name: string): string {
           <div
             ref="dropzone"
             class="border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer"
-            :class="isDragging ? 'border-brand-400 bg-brand-50' : 'border-gray-200 hover:border-brand-300 hover:bg-gray-50'"
+            :class="isDragging ? 'border-accent-400 bg-accent-50' : 'border-gray-200 hover:border-accent-300 hover:bg-gray-50'"
             @click="fileInput?.click()"
             @dragover.prevent="isDragging = true"
             @dragleave="isDragging = false"
@@ -149,7 +149,7 @@ function fileIcon(name: string): string {
 
         <!-- Loading state -->
         <div v-if="status !== 'idle' && status !== 'error'" class="flex items-center gap-2 flex-1">
-          <div class="w-4 h-4 rounded-full border-2 border-brand-600 border-t-transparent animate-spin shrink-0" />
+          <div class="w-4 h-4 rounded-full border-2 border-accent-600 border-t-transparent animate-spin shrink-0" />
           <span class="text-sm text-gray-500">{{ statusLabel }}</span>
         </div>
         <div v-else class="flex-1" />
@@ -160,7 +160,7 @@ function fileIcon(name: string): string {
         <button
           @click="submit"
           :disabled="!canSubmit"
-          class="px-5 py-2 text-sm rounded-lg bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+          class="px-5 py-2 text-sm rounded-lg bg-accent-600 text-white hover:bg-accent-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
         >
           Analyser avec GPT-4o →
         </button>

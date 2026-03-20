@@ -1,42 +1,63 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #d6eaff;
-  --color-brand-200: #add4ff;
-  --color-brand-300: #74b8fd;
-  --color-brand-400: #3895fa;
-  --color-brand-500: #0e7af4;
-  --color-brand-600: #0073e5;
-  --color-brand-700: #005cbf;
-  --color-brand-800: #004899;
+  /* Brand = mint / teal Cartelis */
+  --color-brand-50: #f3fbf8;
+  --color-brand-100: #e8f7f2;
+  --color-brand-200: #d6f1e8;
+  --color-brand-300: #bfe8dc;
+  --color-brand-400: #99dbcf;
+  --color-brand-500: #6fc9bc;
+  --color-brand-600: #4fa79d;
+  --color-brand-700: #3a7e79;
+  --color-brand-800: #315f62;
   --color-brand-900: #261c43;
   --color-brand-950: #170f29;
+
+  /* Accent coral Cartelis */
+  --color-accent-50: #fff3f1;
+  --color-accent-100: #ffe3de;
+  --color-accent-200: #ffc8bf;
+  --color-accent-300: #ffa295;
+  --color-accent-400: #ff7d6f;
+  --color-accent-500: #ff6657;
+  --color-accent-600: #f25244;
+  --color-accent-700: #d63f33;
+  --color-accent-800: #a8342d;
+  --color-accent-900: #7e2b27;
+  --color-accent-950: #451311;
+
+  /* Font */
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-800 antialiased;
-    font-family: ui-sans-serif, system-ui, sans-serif;
+    @apply bg-brand-50 text-gray-800 antialiased;
+    font-family: var(--font-sans);
   }
 }
 
 @layer components {
   .input {
     @apply w-full rounded-md border border-gray-200 px-3 py-2 text-sm bg-white
-      focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-shadow;
+      focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-transparent transition-shadow;
+  }
+  .btn-primary {
+    @apply rounded-lg bg-accent-600 text-white text-sm font-medium px-4 py-2
+      hover:bg-accent-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-secondary {
     @apply rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-600
-      hover:bg-gray-50 transition-colors;
+      hover:bg-brand-50 hover:border-brand-300 transition-colors;
   }
   .btn-dashed {
     @apply rounded-md border border-dashed border-gray-200 px-3 py-2 text-sm text-gray-500
-      hover:bg-gray-50 hover:border-gray-300 transition-colors;
+      hover:bg-brand-50 hover:border-brand-300 transition-colors;
   }
   .export-btn {
     @apply flex flex-col items-center gap-1 p-4 rounded-xl border border-gray-200 bg-white
-      hover:border-brand-300 hover:shadow-sm transition-all text-gray-700;
+      hover:border-accent-300 hover:shadow-sm transition-all text-gray-700;
   }
 }
 

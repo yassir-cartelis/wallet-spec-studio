@@ -148,7 +148,7 @@ const scoreColor = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col">
+  <div class="min-h-screen bg-brand-50 flex flex-col">
 
     <!-- Modals -->
     <AiImportModal v-if="showAiModal" @close="showAiModal = false" @imported="onAiImported" />
@@ -183,10 +183,10 @@ const scoreColor = computed(() => {
     <template v-else>
 
       <!-- Top bar -->
-      <header class="sticky top-0 z-20 bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4">
+      <header class="sticky top-0 z-20 bg-white border-b border-brand-100 px-6 py-3 flex items-center gap-4">
         <!-- Logo — click to go back to welcome -->
         <button @click="showWelcome = true" class="flex items-center gap-3 hover:opacity-70 transition-opacity">
-          <span class="text-[11px] font-bold tracking-widest text-white bg-brand-600 px-2 py-0.5 rounded">CARTELIS</span>
+          <span class="text-[11px] font-bold tracking-widest text-white bg-brand-700 px-2 py-0.5 rounded">CARTELIS</span>
           <span class="text-sm font-semibold text-brand-900">Wallet Spec Studio</span>
         </button>
 
@@ -211,7 +211,7 @@ const scoreColor = computed(() => {
         <!-- AI import -->
         <button
           @click="showAiModal = true"
-          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-brand-600 text-white hover:bg-brand-700 transition-colors font-medium"
+          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-accent-600 text-white hover:bg-accent-700 transition-colors font-medium"
           title="Générer une spec depuis des documents avec GPT-4o"
         >✦ IA</button>
 
@@ -233,20 +233,20 @@ const scoreColor = computed(() => {
       <div class="flex flex-1">
 
         <!-- Sidebar nav -->
-        <nav class="w-56 shrink-0 border-r border-gray-200 bg-white sticky top-[53px] h-[calc(100vh-53px)] overflow-y-auto flex flex-col py-4">
+        <nav class="w-56 shrink-0 border-r border-brand-100 bg-white sticky top-[53px] h-[calc(100vh-53px)] overflow-y-auto flex flex-col py-4">
 
           <!-- Guide CTA — top of sidebar, always visible -->
           <div class="px-3 mb-3">
             <button
               @click="showGuide = true"
-              class="w-full rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-left px-4 py-3 transition-colors group"
+              class="w-full rounded-xl bg-accent-600 hover:bg-accent-700 text-white text-left px-4 py-3 transition-colors group"
             >
               <div class="flex items-center justify-between mb-1">
                 <span class="text-lg">📖</span>
-                <span class="text-brand-300 text-xs group-hover:translate-x-0.5 transition-transform">→</span>
+                <span class="text-accent-200 text-xs group-hover:translate-x-0.5 transition-transform">→</span>
               </div>
               <p class="text-xs font-semibold leading-snug">Premier projet Wallet ?</p>
-              <p class="text-[11px] text-brand-300 mt-0.5">Guide + schéma des flux</p>
+              <p class="text-[11px] text-accent-200 mt-0.5">Guide + schéma des flux</p>
             </button>
           </div>
 
@@ -293,7 +293,7 @@ const scoreColor = computed(() => {
             <button
               @click="next()"
               :disabled="currentStepIndex === STEPS.length - 1"
-              class="px-4 py-2 text-sm rounded-lg bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              class="px-4 py-2 text-sm rounded-lg bg-accent-600 text-white hover:bg-accent-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >Suivant →</button>
           </div>
         </main>

@@ -64,14 +64,14 @@ function formatDate(iso: string) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-brand-50">
 
     <!-- ── Hero section ─────────────────────────────────────────────────── -->
     <div class="flex flex-col items-center px-6 pt-14 pb-0">
 
       <!-- Logo -->
       <div class="flex flex-col items-center gap-3 mb-12">
-        <span class="text-[11px] font-bold tracking-widest text-white bg-brand-600 px-3 py-1 rounded">CARTELIS</span>
+        <span class="text-[11px] font-bold tracking-widest text-white bg-brand-700 px-3 py-1 rounded">CARTELIS</span>
         <div class="flex items-center gap-2">
           <span class="text-2xl font-bold text-brand-900">Wallet</span>
           <span class="text-2xl font-light text-gray-400">Spec Studio</span>
@@ -82,20 +82,20 @@ function formatDate(iso: string) {
       <div class="w-full max-w-2xl">
         <button
           @click="emit('openAi')"
-          class="group w-full rounded-2xl bg-brand-600 hover:bg-brand-700 text-white p-8 text-left transition-all shadow-lg hover:shadow-xl"
+          class="group w-full rounded-2xl bg-accent-600 hover:bg-accent-700 text-white p-8 text-left transition-all shadow-lg hover:shadow-xl"
         >
           <div class="flex items-start justify-between mb-5">
             <div class="flex items-center gap-3">
               <span class="text-3xl">✦</span>
-              <span class="text-xs font-semibold tracking-widest text-brand-200 uppercase">Propulsé par GPT-4o</span>
+              <span class="text-xs font-semibold tracking-widest text-accent-200 uppercase">Propulsé par GPT-4o</span>
             </div>
-            <span class="text-brand-300 text-lg group-hover:translate-x-1 transition-transform">→</span>
+            <span class="text-accent-300 text-lg group-hover:translate-x-1 transition-transform">→</span>
           </div>
           <h1 class="text-2xl font-bold leading-snug mb-3">
             L'IA Cartelis analyse tes documents<br />
-            <span class="text-brand-200">et initialise ta spec en quelques secondes</span>
+            <span class="text-accent-200">et initialise ta spec en quelques secondes</span>
           </h1>
-          <p class="text-brand-100 text-sm leading-relaxed max-w-xl">
+          <p class="text-accent-100 text-sm leading-relaxed max-w-xl">
             Dépose ton brief client, un dictionnaire de données, ou tes notes d'atelier.
             GPT-4o extrait les informations clés et pré-remplit les 8 étapes de la spec pour toi.
           </p>
@@ -104,7 +104,7 @@ function formatDate(iso: string) {
             <span class="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-medium">DOCX</span>
             <span class="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-medium">TXT</span>
             <span class="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-medium">MD</span>
-            <span class="ml-auto bg-white text-brand-700 text-sm px-5 py-2 rounded-lg font-semibold group-hover:bg-brand-50 transition-colors">
+            <span class="ml-auto bg-white text-accent-700 text-sm px-5 py-2 rounded-lg font-semibold group-hover:bg-accent-50 transition-colors">
               Déposer mes documents →
             </span>
           </div>
@@ -152,7 +152,7 @@ function formatDate(iso: string) {
         <button
           @click="activeCategory = null"
           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
-          :class="activeCategory === null ? 'bg-brand-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-brand-300'"
+          :class="activeCategory === null ? 'bg-accent-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-brand-400'"
         >
           Tous ({{ projectsStore.projects.length }})
         </button>
@@ -161,7 +161,7 @@ function formatDate(iso: string) {
           :key="String(cat)"
           @click="activeCategory = activeCategory === cat ? null : String(cat)"
           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
-          :class="activeCategory === cat ? 'bg-brand-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-brand-300'"
+          :class="activeCategory === cat ? 'bg-accent-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-brand-400'"
         >
           {{ cat }} ({{ projectsStore.projects.filter((p: SavedProject) => p.category === cat).length }})
         </button>
@@ -199,7 +199,7 @@ function formatDate(iso: string) {
           <div class="border-t border-gray-100 px-4 py-3 flex items-center gap-2">
             <button
               @click="duplicateAndLoad(project)"
-              class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700 transition-colors"
+              class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-600 text-white text-xs font-medium hover:bg-accent-700 transition-colors"
             >
               ⧉ Dupliquer et démarrer
             </button>

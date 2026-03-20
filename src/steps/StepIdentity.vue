@@ -4,6 +4,7 @@ import { usePayload } from '@/composables/usePayload'
 import StepShell from '@/components/StepShell.vue'
 import FormField from '@/components/FormField.vue'
 import CodeBlock from '@/components/CodeBlock.vue'
+import StepHint from '@/components/StepHint.vue'
 
 const store = useSpecStore()
 const s = store.state
@@ -20,6 +21,12 @@ function toggleChannel(ch: string) {
 
 <template>
   <StepShell icon="🔑" title="Identité & Points d'entrée" description="Variable pivot, URLs d'accès et canaux d'activation.">
+
+    <StepHint title="C'est quoi la variable pivot ?">
+      <p>Le pivot est <strong>l'identifiant unique</strong> qui relie une donnée côté client à une carte Wallet. C'est autour de lui que tout s'articule.</p>
+      <p>En pratique : c'est le nom de la variable dans ton système source qui contient cet identifiant. Ex : <code class="bg-blue-100 px-1 rounded font-mono text-xs">parcelNumber</code>, <code class="bg-blue-100 px-1 rounded font-mono text-xs">orderId</code>, <code class="bg-blue-100 px-1 rounded font-mono text-xs">customerId</code>.</p>
+      <p>Ce champ devient <code class="bg-blue-100 px-1 rounded font-mono text-xs">user.identifier</code> côté Wallet Brevo. C'est le seul champ <strong>obligatoire</strong> dans tous les appels API.</p>
+    </StepHint>
 
     <!-- Pivot -->
     <div class="grid grid-cols-2 gap-4">

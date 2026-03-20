@@ -2,6 +2,7 @@
 import { useSpecStore } from '@/stores/spec'
 import StepShell from '@/components/StepShell.vue'
 import FormField from '@/components/FormField.vue'
+import StepHint from '@/components/StepHint.vue'
 
 const store = useSpecStore()
 const s = store.state
@@ -20,6 +21,12 @@ const timezones = [
 
 <template>
   <StepShell icon="🏷️" title="Scope du projet" description="Informations générales sur le projet et les campagnes Wallet.">
+
+    <StepHint title="Où trouver ces informations ?">
+      <p><strong>Account ID</strong> : c'est le slug de ton compte Wallet Brevo, en minuscules sans espaces. Retrouve-le dans le dashboard Wallet Brevo ou demande-le à ton contact technique. Ex : <code class="bg-blue-100 px-1 rounded font-mono text-xs">colissimo</code></p>
+      <p><strong>Project ID</strong> : correspond à la locale de la campagne. Généralement <code class="bg-blue-100 px-1 rounded font-mono text-xs">fr_FR</code> pour la France.</p>
+      <p><strong>Campagnes</strong> : chaque projet a au minimum deux campagnes — la campagne principale (la carte active) et <code class="bg-blue-100 px-1 rounded font-mono text-xs">void</code> (utilisée pour vider la carte en fin de vie). Le nom technique doit être un slug minuscule.</p>
+    </StepHint>
 
     <!-- Project info -->
     <div class="grid grid-cols-2 gap-4">

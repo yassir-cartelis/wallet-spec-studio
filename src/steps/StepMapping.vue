@@ -2,6 +2,7 @@
 import { useSpecStore } from '@/stores/spec'
 import { WALLET_FIELDS } from '@/config/walletFields'
 import StepShell from '@/components/StepShell.vue'
+import StepHint from '@/components/StepHint.vue'
 import type { FieldType } from '@/types/spec'
 
 const store = useSpecStore()
@@ -41,6 +42,12 @@ function addPreset(preset: typeof PRESETS[0]) {
 
 <template>
   <StepShell icon="🗺️" title="Contrat de données" description="Mapping des champs du système source vers les champs Wallet Brevo.">
+
+    <StepHint title="Comment remplir ce mapping ?">
+      <p><strong>Champ source</strong> : le nom exact du champ côté système client (CRM, backend, export). Respecte la casse du système source. Ex : <code class="bg-blue-100 px-1 rounded font-mono text-xs">STATUT_LIVRAISON</code>, <code class="bg-blue-100 px-1 rounded font-mono text-xs">recipientEmail</code>.</p>
+      <p><strong>Champ Wallet</strong> : la cible dans l'API Wallet Brevo. Commence à taper — les champs standards apparaissent en suggestion. Pour un champ personnalisé, tape directement son nom (ex: <code class="bg-blue-100 px-1 rounded font-mono text-xs">points_balance</code>) et il sera automatiquement préfixé en <code class="bg-blue-100 px-1 rounded font-mono text-xs">user.points_balance</code>.</p>
+      <p><strong>Requis</strong> : coche uniquement les champs sans lesquels la carte ne peut pas être créée. En pratique : seulement <code class="bg-blue-100 px-1 rounded font-mono text-xs">user.identifier</code> est toujours requis.</p>
+    </StepHint>
 
     <!-- Quick presets -->
     <div>

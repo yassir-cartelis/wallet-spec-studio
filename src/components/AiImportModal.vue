@@ -11,14 +11,6 @@ const emit = defineEmits<{
 const store = useSpecStore()
 const { status, statusLabel, error, run, reset } = useAiImport()
 
-// ── API key (persisted in localStorage) ───────────────────────────────────────
-const apiKey = ref(localStorage.getItem('openai-api-key') ?? '')
-const showKey = ref(false)
-
-function saveKey() {
-  localStorage.setItem('openai-api-key', apiKey.value)
-}
-
 // ── Files ─────────────────────────────────────────────────────────────────────
 const files = ref<File[]>([])
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -49,12 +41,11 @@ function onDrop(e: DragEvent) {
 const contextPrompt = ref('')
 
 // ── Submit ────────────────────────────────────────────────────────────────────
-const canSubmit = computed(() => files.value.length > 0 && apiKey.value.trim().length > 10 && status.value === 'idle')
+const canSubmit = computed(() => files.value.length > 0 && status.value === 'idle')
 
 async function submit() {
-  saveKey()
   try {
-    const json = await run(files.value, contextPrompt.value, apiKey.value.trim())
+    const json = await run(files.value, contextPrompt.value)
     const result = store.importSpec(json)
     if (result.ok) {
       emit('imported', store.state.meta.projectName || 'Nouveau projet')
@@ -96,26 +87,6 @@ function fileIcon(name: string): string {
 
       <!-- Body -->
       <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-
-        <!-- API Key -->
-        <div class="space-y-1.5">
-          <label class="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-            Clé API OpenAI
-            <span class="text-xs font-normal text-gray-400">— stockée localement, jamais envoyée ailleurs</span>
-          </label>
-          <div class="flex gap-2">
-            <input
-              v-model="apiKey"
-              :type="showKey ? 'text' : 'password'"
-              placeholder="sk-..."
-              class="input flex-1 font-mono text-xs"
-              @blur="saveKey"
-            />
-            <button @click="showKey = !showKey" class="px-3 rounded-md border border-gray-200 text-gray-400 hover:text-gray-600 text-sm transition-colors">
-              {{ showKey ? '🙈' : '👁️' }}
-            </button>
-          </div>
-        </div>
 
         <!-- Drop zone -->
         <div class="space-y-2">

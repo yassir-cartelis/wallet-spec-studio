@@ -100,32 +100,26 @@ async function extractText(file: File): Promise<string> {
   return file.text()
 }
 
-// ── OpenAI call ───────────────────────────────────────────────────────────────
+// ── API call (via backend proxy) ──────────────────────────────────────────────
 
-async function callOpenAI(apiKey: string, content: string): Promise<unknown> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+async function callGenerateSpec(content: string): Promise<unknown> {
+  const response = await fetch('/api/generate-spec', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'gpt-4o',
-      response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content },
       ],
-      temperature: 0.2,
     }),
   })
 
+  const data = await response.json()
+
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error((err as { error?: { message?: string } }).error?.message ?? `Erreur API ${response.status}`)
+    throw new Error(data.error ?? `Erreur serveur ${response.status}`)
   }
 
-  const data = await response.json()
   const raw = data.choices?.[0]?.message?.content
   if (!raw) throw new Error('Réponse vide du modèle.')
   return JSON.parse(raw)
@@ -141,7 +135,7 @@ export function useAiImport() {
   const error = ref<string | null>(null)
   const result = ref<unknown>(null)
 
-  async function run(files: File[], contextPrompt: string, apiKey: string): Promise<unknown> {
+  async function run(files: File[], contextPrompt: string): Promise<unknown> {
     status.value = 'extracting'
     error.value = null
     result.value = null
@@ -162,10 +156,10 @@ export function useAiImport() {
         .filter(Boolean)
         .join('\n\n')
 
-      // 3. Call OpenAI
+      // 3. Call backend proxy → OpenAI
       status.value = 'calling'
       statusLabel.value = 'Analyse par GPT-4o…'
-      const json = await callOpenAI(apiKey, userMessage)
+      const json = await callGenerateSpec(userMessage)
 
       result.value = json
       status.value = 'done'

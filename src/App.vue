@@ -217,6 +217,24 @@ const scoreColor = computed(() => {
 
         <!-- Sidebar nav -->
         <nav class="w-56 shrink-0 border-r border-gray-200 bg-white sticky top-[53px] h-[calc(100vh-53px)] overflow-y-auto flex flex-col py-4">
+
+          <!-- Guide CTA — top of sidebar, always visible -->
+          <div class="px-3 mb-3">
+            <button
+              @click="showGuide = true"
+              class="w-full rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-left px-4 py-3 transition-colors group"
+            >
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-lg">📖</span>
+                <span class="text-violet-300 text-xs group-hover:translate-x-0.5 transition-transform">→</span>
+              </div>
+              <p class="text-xs font-semibold leading-snug">Premier projet Wallet ?</p>
+              <p class="text-[11px] text-violet-300 mt-0.5">Guide + schéma des flux</p>
+            </button>
+          </div>
+
+          <div class="border-t border-gray-100 mb-2" />
+
           <ul class="space-y-0.5 px-3 flex-1">
             <li v-for="step in STEPS" :key="step.id">
               <button
@@ -232,17 +250,6 @@ const scoreColor = computed(() => {
               </button>
             </li>
           </ul>
-
-          <!-- Guide link at bottom of sidebar -->
-          <div class="px-3 pt-3 mt-3 border-t border-gray-100">
-            <button
-              @click="showGuide = true"
-              class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"
-            >
-              <span class="w-5 h-5 rounded-full border border-gray-200 flex items-center justify-center text-xs shrink-0">?</span>
-              Guide Wallet
-            </button>
-          </div>
         </nav>
 
         <!-- Main content -->

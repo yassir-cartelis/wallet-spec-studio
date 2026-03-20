@@ -160,7 +160,7 @@ function fileIcon(name: string): string {
         <button
           @click="submit"
           :disabled="!canSubmit"
-          class="px-5 py-2 text-sm rounded-lg bg-accent-600 text-white hover:bg-accent-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+          class="px-5 py-2 text-sm rounded-lg bg-accent-500 text-white hover:bg-accent-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
         >
           Analyser avec GPT-4o →
         </button>

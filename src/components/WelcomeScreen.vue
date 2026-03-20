@@ -64,7 +64,7 @@ function formatDate(iso: string) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-brand-50">
+  <div class="min-h-screen bg-brand-200">
 
     <!-- ── Hero section ─────────────────────────────────────────────────── -->
     <div class="flex flex-col items-center px-6 pt-14 pb-0">
@@ -114,13 +114,13 @@ function formatDate(iso: string) {
         <div class="flex items-center gap-3 mt-4">
           <button
             @click="emit('start')"
-            class="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-200 bg-white text-gray-700 hover:border-brand-300 hover:text-brand-700 transition-all text-sm font-medium"
+            class="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-2 border-white/50 bg-white/70 text-brand-900 hover:bg-white hover:border-brand-400 hover:text-brand-700 transition-all text-sm font-medium"
           >
             ✏️ Partir de zéro
           </button>
           <button
             @click="emit('openGuide')"
-            class="flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-gray-200 bg-white text-gray-500 hover:border-brand-200 hover:text-brand-600 transition-all text-sm"
+            class="flex items-center gap-2 px-5 py-3 rounded-xl border-2 border-white/50 bg-white/70 text-brand-800 hover:bg-white hover:border-brand-400 hover:text-brand-600 transition-all text-sm"
           >
             📖 Guide Wallet
           </button>
@@ -141,10 +141,10 @@ function formatDate(iso: string) {
       <!-- Section header -->
       <div class="flex items-center justify-between mb-5">
         <div>
-          <h2 class="text-lg font-semibold text-gray-900">📚 Bibliothèque de use-cases</h2>
-          <p class="text-sm text-gray-400 mt-0.5">Duplique un use-case existant pour démarrer plus vite.</p>
+          <h2 class="text-lg font-semibold text-brand-900">📚 Bibliothèque de use-cases</h2>
+          <p class="text-sm text-brand-700 mt-0.5">Duplique un use-case existant pour démarrer plus vite.</p>
         </div>
-        <span class="text-xs text-gray-400">{{ projectsStore.projects.length }} projets</span>
+        <span class="text-xs text-brand-600">{{ projectsStore.projects.length }} projets</span>
       </div>
 
       <!-- Category filters -->
@@ -152,7 +152,7 @@ function formatDate(iso: string) {
         <button
           @click="activeCategory = null"
           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
-          :class="activeCategory === null ? 'bg-accent-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-brand-400'"
+          :class="activeCategory === null ? 'bg-accent-500 text-white' : 'bg-white/70 border border-brand-200 text-brand-700 hover:bg-white hover:border-brand-400'"
         >
           Tous ({{ projectsStore.projects.length }})
         </button>
@@ -161,7 +161,7 @@ function formatDate(iso: string) {
           :key="String(cat)"
           @click="activeCategory = activeCategory === cat ? null : String(cat)"
           class="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
-          :class="activeCategory === cat ? 'bg-accent-600 text-white' : 'bg-white border border-gray-200 text-gray-500 hover:border-brand-400'"
+          :class="activeCategory === cat ? 'bg-accent-500 text-white' : 'bg-white/70 border border-brand-200 text-brand-700 hover:bg-white hover:border-brand-400'"
         >
           {{ cat }} ({{ projectsStore.projects.filter((p: SavedProject) => p.category === cat).length }})
         </button>
@@ -199,7 +199,7 @@ function formatDate(iso: string) {
           <div class="border-t border-gray-100 px-4 py-3 flex items-center gap-2">
             <button
               @click="duplicateAndLoad(project)"
-              class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-600 text-white text-xs font-medium hover:bg-accent-700 transition-colors"
+              class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-500 text-white text-xs font-medium hover:bg-accent-600 transition-colors"
             >
               ⧉ Dupliquer et démarrer
             </button>

@@ -148,7 +148,7 @@ const scoreColor = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-brand-50 flex flex-col">
+  <div class="min-h-screen bg-brand-200 flex flex-col">
 
     <!-- Modals -->
     <AiImportModal v-if="showAiModal" @close="showAiModal = false" @imported="onAiImported" />
@@ -183,7 +183,7 @@ const scoreColor = computed(() => {
     <template v-else>
 
       <!-- Top bar -->
-      <header class="sticky top-0 z-20 bg-white border-b border-brand-100 px-6 py-3 flex items-center gap-4">
+      <header class="sticky top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-brand-200 px-6 py-3 flex items-center gap-4">
         <!-- Logo — click to go back to welcome -->
         <button @click="showWelcome = true" class="flex items-center gap-3 hover:opacity-70 transition-opacity">
           <span class="text-[11px] font-bold tracking-widest text-white bg-brand-700 px-2 py-0.5 rounded">CARTELIS</span>
@@ -211,7 +211,7 @@ const scoreColor = computed(() => {
         <!-- AI import -->
         <button
           @click="showAiModal = true"
-          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-accent-600 text-white hover:bg-accent-700 transition-colors font-medium"
+          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-accent-500 text-white hover:bg-accent-600 transition-colors font-medium"
           title="Générer une spec depuis des documents avec GPT-4o"
         >✦ IA</button>
 
@@ -233,7 +233,7 @@ const scoreColor = computed(() => {
       <div class="flex flex-1">
 
         <!-- Sidebar nav -->
-        <nav class="w-56 shrink-0 border-r border-brand-100 bg-white sticky top-[53px] h-[calc(100vh-53px)] overflow-y-auto flex flex-col py-4">
+        <nav class="w-56 shrink-0 border-r border-brand-300 bg-white/90 sticky top-[53px] h-[calc(100vh-53px)] overflow-y-auto flex flex-col py-4 backdrop-blur-sm">
 
           <!-- Guide CTA — top of sidebar, always visible -->
           <div class="px-3 mb-3">
@@ -279,7 +279,7 @@ const scoreColor = computed(() => {
         </nav>
 
         <!-- Main content -->
-        <main class="flex-1 px-8 py-8 max-w-3xl">
+        <main class="flex-1 px-8 py-8 max-w-3xl min-h-full">
           <component :is="currentComponent" />
 
           <!-- Step navigation -->
@@ -293,7 +293,7 @@ const scoreColor = computed(() => {
             <button
               @click="next()"
               :disabled="currentStepIndex === STEPS.length - 1"
-              class="px-4 py-2 text-sm rounded-lg bg-accent-600 text-white hover:bg-accent-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              class="px-4 py-2 text-sm rounded-lg bg-accent-500 text-white hover:bg-accent-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >Suivant →</button>
           </div>
         </main>

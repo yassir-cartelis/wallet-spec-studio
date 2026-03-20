@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand = mint / teal Cartelis */
+  --color-brand-50: #f3fbf8;
+  --color-brand-100: #e8f7f2;
+  --color-brand-200: #d6f1e8;
+  --color-brand-300: #bfe8dc;
+  --color-brand-400: #99dbcf;
+  --color-brand-500: #6fc9bc;
+  --color-brand-600: #4fa79d;
+  --color-brand-700: #3a7e79;
+  --color-brand-800: #315f62;
+  --color-brand-900: #261c43;
+  --color-brand-950: #170f29;
+
+  /* Accent coral Cartelis */
+  --color-accent-50: #fff3f1;
+  --color-accent-100: #ffe3de;
+  --color-accent-200: #ffc8bf;
+  --color-accent-300: #ffa295;
+  --color-accent-400: #ff7d6f;
+  --color-accent-500: #ff6657;
+  --color-accent-600: #f25244;
+  --color-accent-700: #d63f33;
+  --color-accent-800: #a8342d;
+  --color-accent-900: #7e2b27;
+  --color-accent-950: #451311;
+
+  /* Font */
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-200 text-brand-900 antialiased;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  .input {
+    @apply w-full rounded-md border border-brand-200 px-3 py-2 text-sm bg-white text-brand-900
+      focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-transparent transition-shadow;
+  }
+  .btn-primary {
+    @apply rounded-lg bg-accent-500 text-white text-sm font-semibold px-4 py-2
+      hover:bg-accent-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply rounded-md border border-brand-300 px-3 py-1.5 text-sm text-brand-800
+      hover:bg-brand-100 hover:border-brand-400 transition-colors;
+  }
+  .btn-dashed {
+    @apply rounded-md border border-dashed border-brand-300 px-3 py-2 text-sm text-brand-700
+      hover:bg-brand-100 hover:border-brand-400 transition-colors;
+  }
+  .export-btn {
+    @apply flex flex-col items-center gap-1 p-4 rounded-xl border border-brand-200 bg-white
+      hover:border-accent-400 hover:shadow-sm transition-all text-brand-900;
+  }
+}
+
+.toast-enter-active, .toast-leave-active { transition: opacity 0.2s, transform 0.2s; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(8px); }

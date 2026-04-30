@@ -44,6 +44,10 @@ const DEFAULT_STATE: SpecState = {
   errors: DEFAULT_ERROR_RULES.map((e) => ({ ...e, id: makeId() })),
 }
 
+export function emptySpec(): SpecState {
+  return structuredClone(DEFAULT_STATE)
+}
+
 export const useSpecStore = defineStore('spec', () => {
   const state = useStorage<SpecState>('wallet-spec', structuredClone(DEFAULT_STATE), localStorage, {
     serializer: {
@@ -60,9 +64,10 @@ export const useSpecStore = defineStore('spec', () => {
     const { accountId, projectId } = state.value.meta
     const { pivotVar, pivotExample } = state.value.entry
     if (!accountId || !pivotVar) return ''
+    const campaignSlug = state.value.campaigns[0]?.name || 'loyalty'
     const base = state.value.entry.baseUrlProd || `https://${accountId}.captainwallet.com`
     const encoded = encodeURIComponent(`${pivotExample}`)
-    return `${base}/${projectId}/loyalty?user%5Bidentifier%5D=${encoded}&channel=email&tag=crm_email`
+    return `${base}/${projectId}/${campaignSlug}?data=${encoded}&channel=email&tag=crm_email`
   })
 
   const requiredFields = computed(() =>
@@ -98,6 +103,7 @@ export const useSpecStore = defineStore('spec', () => {
       walletField: '',
       type: 'string',
       required: false,
+      payloadLevel: 'metadata',
       ...partial,
     }
     state.value.mapping.push(field)

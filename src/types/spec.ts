@@ -3,6 +3,7 @@
 export type SecurityMode = 'none' | 'sha256' | 'aes256cbc'
 export type SecurityCompute = 'client' | 'server'
 export type FieldType = 'string' | 'boolean' | 'number' | 'date'
+export type PayloadLevel = 'root' | 'metadata'
 export type FlowName = 'create' | 'update' | 'optin' | 'anonymize'
 export type UpdateMode = 'api' | 'sftp'
 export type StepId =
@@ -32,10 +33,11 @@ export type UseCaseCategory = typeof USE_CASE_CATEGORIES[number]
 
 export interface FieldMapping {
   id: string
-  sourceField: string       // client-side field name
-  walletField: string       // wallet API field (e.g. user.status)
+  sourceField: string
+  walletField: string       // key dans le payload : 'identifier', 'loyaltyStatus', ou clé metadata
   type: FieldType
   required: boolean
+  payloadLevel: PayloadLevel  // 'root' → payload[key], 'metadata' → payload.metadatas[key]
   example?: string
   notes?: string
 }

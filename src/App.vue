@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useSpecStore } from '@/stores/spec'
-import { useProjectsStore } from '@/stores/projects'
+import { useAuthStore } from '@/stores/auth'
 import { useValidation } from '@/composables/useValidation'
+import { getMission } from '@/services/missions'
+import { useSaveSpec } from '@/composables/useSaveSpec'
 import { STEPS } from '@/config/steps'
 import type { StepId, SpecState } from '@/types/spec'
 
@@ -18,6 +20,52 @@ import StepExport from '@/steps/StepExport.vue'
 import AiImportModal from '@/components/AiImportModal.vue'
 import WelcomeScreen from '@/components/WelcomeScreen.vue'
 import WalletGuide from '@/components/WalletGuide.vue'
+import LoginPage from '@/components/LoginPage.vue'
+import MissionsDashboard from '@/components/MissionsDashboard.vue'
+import VersionsPanel from '@/components/VersionsPanel.vue'
+import SaveSpecModal from '@/components/SaveSpecModal.vue'
+import JournalPanel from '@/components/JournalPanel.vue'
+import type { Mission } from '@/types/mission'
+import type { SpecVersion } from '@/types/version'
+
+const authStore = useAuthStore()
+const currentMission = ref<Mission | null>(null)
+
+function openMission(m: Mission) {
+  store.importSpec(m.spec)
+  currentMission.value = m
+  showWelcome.value = false
+  history.pushState(null, '', `?mission=${m.id}`)
+}
+
+function backToDashboard() {
+  currentMission.value = null
+  showWelcome.value = false
+  store.reset()
+  history.pushState(null, '', window.location.pathname)
+}
+
+// Au chargement : si ?mission=<id> dans l'URL, on recharge la mission
+watch(
+  () => authStore.loading,
+  async (loading) => {
+    if (loading || !authStore.user) return
+    const id = new URLSearchParams(window.location.search).get('mission')
+    if (!id) return
+    try {
+      const mission = await getMission(id)
+      if (mission) {
+        openMission(mission)
+      } else {
+        // ID invalide ou mission supprimée — on nettoie l'URL
+        history.replaceState(null, '', window.location.pathname)
+      }
+    } catch {
+      history.replaceState(null, '', window.location.pathname)
+    }
+  },
+  { immediate: true }
+)
 
 const STEP_COMPONENTS: Record<StepId, unknown> = {
   scope: StepScope,
@@ -31,7 +79,6 @@ const STEP_COMPONENTS: Record<StepId, unknown> = {
 }
 
 const store = useSpecStore()
-const projectsStore = useProjectsStore()
 const { score } = useValidation()
 const currentStep = ref<StepId>('scope')
 
@@ -86,11 +133,40 @@ function showToast(message: string, type: Toast['type']) {
   toastTimer = setTimeout(() => (toast.value = null), 3000)
 }
 
-// ── Save current spec to library ──────────────────────────────────────────────
-function saveCurrentSpec() {
-  const savedId = projectsStore.saveSpec(store.state)
-  store.state.meta.savedId = savedId
-  showToast(`✓ Sauvegardé dans la bibliothèque`, 'success')
+// ── Versions panel ────────────────────────────────────────────────────────────
+const showVersions = ref(false)
+
+// ── Journal panel ─────────────────────────────────────────────────────────────
+const showJournal = ref(false)
+
+function onRestoreVersion(version: SpecVersion) {
+  store.importSpec(version.spec)
+  showVersions.value = false
+  showToast(`v${version.versionNumber} chargée — sauvegardez pour créer une nouvelle version`, 'success')
+}
+
+// ── Save current spec to Firestore ───────────────────────────────────────────
+const saving = ref(false)
+const showSaveModal = ref(false)
+const { saveSpec } = useSaveSpec()
+
+async function confirmSave(payload: { label: string; notes: string }) {
+  if (!currentMission.value) return
+  showSaveModal.value = false
+  saving.value = true
+  try {
+    currentMission.value = await saveSpec(
+      currentMission.value,
+      store.state,
+      payload.label || undefined,
+      payload.notes || undefined,
+    )
+    showToast(`✓ Spec sauvegardée (v${currentMission.value.currentVersion})`, 'success')
+  } catch {
+    showToast(`Erreur lors de la sauvegarde`, 'error')
+  } finally {
+    saving.value = false
+  }
 }
 
 // ── JSON import (hidden — accessible via welcome screen or sidebar) ───────────
@@ -148,11 +224,41 @@ const scoreColor = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-brand-200 flex flex-col">
+  <!-- Chargement Firebase -->
+  <div v-if="authStore.loading" class="min-h-screen flex items-center justify-center bg-gray-50">
+    <span class="text-sm text-gray-400">Chargement…</span>
+  </div>
+
+  <!-- Non connecté -->
+  <LoginPage v-else-if="!authStore.user" />
+
+  <!-- Dashboard missions (connecté, pas de mission ouverte) -->
+  <MissionsDashboard v-else-if="!currentMission" @open-mission="openMission" />
+
+  <!-- App principale (mission ouverte) -->
+  <div v-else class="min-h-screen bg-brand-200 flex flex-col">
 
     <!-- Modals -->
     <AiImportModal v-if="showAiModal" @close="showAiModal = false" @imported="onAiImported" />
     <WalletGuide v-if="showGuide" @close="showGuide = false" />
+    <SaveSpecModal
+      v-if="showSaveModal"
+      @cancel="showSaveModal = false"
+      @confirm="confirmSave"
+    />
+    <JournalPanel
+      v-if="showJournal && currentMission && authStore.user"
+      :mission="currentMission"
+      :author="{ uid: authStore.user.uid, email: authStore.user.email ?? '', name: authStore.user.displayName ?? authStore.user.email ?? '' }"
+      @close="showJournal = false"
+    />
+    <VersionsPanel
+      v-if="showVersions && currentMission"
+      :mission="currentMission"
+      :current-version="currentMission.currentVersion"
+      @close="showVersions = false"
+      @restore="onRestoreVersion"
+    />
 
     <!-- Toast -->
     <transition name="toast">
@@ -184,6 +290,9 @@ const scoreColor = computed(() => {
 
       <!-- Top bar -->
       <header class="sticky top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-brand-200 px-6 py-3 flex items-center gap-4">
+        <!-- Back to dashboard -->
+        <button @click="backToDashboard()" class="text-xs text-gray-400 hover:text-brand-600 transition-colors mr-2">← Missions</button>
+
         <!-- Logo — click to go back to welcome -->
         <button @click="showWelcome = true" class="flex items-center gap-3 hover:opacity-70 transition-opacity">
           <span class="text-[11px] font-bold tracking-widest text-white bg-brand-700 px-2 py-0.5 rounded">CARTELIS</span>
@@ -215,13 +324,29 @@ const scoreColor = computed(() => {
           title="Générer une spec depuis des documents avec GPT-4o"
         >✦ IA</button>
 
-        <!-- Save to library -->
+        <!-- Journal -->
         <button
-          @click="saveCurrentSpec"
-          :disabled="!store.state.meta.projectName"
+          v-if="currentMission"
+          @click="showJournal = true"
+          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
+          title="Journal de mission"
+        >📓 Journal</button>
+
+        <!-- Versions history -->
+        <button
+          v-if="currentMission"
+          @click="showVersions = true"
+          class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
+          title="Historique des versions"
+        >🕐 v{{ currentMission.currentVersion }}</button>
+
+        <!-- Save to Firestore -->
+        <button
+          @click="showSaveModal = true"
+          :disabled="!currentMission || saving"
           class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-gray-200 text-gray-600 hover:border-brand-400 hover:text-brand-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          title="Sauvegarder dans la bibliothèque de use-cases"
-        >💾 Sauvegarder</button>
+          title="Sauvegarder la spec dans Firestore"
+        >{{ saving ? '⏳ Sauvegarde…' : '💾 Sauvegarder' }}</button>
 
         <button
           @click="store.reset(); showWelcome = true"

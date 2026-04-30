@@ -1,112 +1,139 @@
-// Known Wallet Brevo API fields — single source of truth
-// Add new fields here and they propagate to mapping dropdowns + validation
-
-import type { FieldType } from '@/types/spec'
+import type { FieldType, PayloadLevel } from '@/types/spec'
 
 export interface WalletFieldDef {
-  field: string           // dot-notation API field
-  label: string           // human label
+  field: string
+  label: string
   type: FieldType
+  payloadLevel: PayloadLevel
   required?: boolean
   description?: string
 }
 
 export const WALLET_FIELDS: WalletFieldDef[] = [
-  // ── Identity ──────────────────────────────────────────────────────────────
+  // ── Champs racine (root) — toujours au premier niveau du payload ──────────
   {
-    field: 'user.identifier',
+    field: 'identifier',
     label: 'Identifiant unique',
     type: 'string',
+    payloadLevel: 'root',
     required: true,
-    description: 'Clé pivot — doit correspondre au parcelNumber ou identifiant client',
+    description: 'Clé pivot — identifiant unique du porteur de carte (parcelNumber, orderId, customerId…)',
   },
   {
-    field: 'user.status',
-    label: 'Statut',
+    field: 'loyaltyStatus',
+    label: 'Statut affiché',
     type: 'string',
-    description: 'Statut courant du colis / de la carte',
+    payloadLevel: 'root',
+    description: 'Statut visible sur la carte (ex: "En cours de livraison", "Disponible en point relais")',
+  },
+
+  // ── Metadatas — dans l'objet metadatas du payload ─────────────────────────
+  // Logistique / livraison
+  {
+    field: 'deliveryDate',
+    label: 'Date de livraison',
+    type: 'date',
+    payloadLevel: 'metadata',
+    description: 'Date prévue ou confirmée (format JJ/MM/AAAA)',
   },
   {
-    field: 'user.firstName',
-    label: 'Prénom',
+    field: 'deliveryAddress',
+    label: 'Adresse de livraison',
     type: 'string',
+    payloadLevel: 'metadata',
   },
   {
-    field: 'user.lastName',
-    label: 'Nom',
+    field: 'deliverySlot',
+    label: 'Créneau de livraison',
     type: 'string',
+    payloadLevel: 'metadata',
+    description: 'Ex: 12:00-14:00',
   },
   {
-    field: 'user.email',
-    label: 'Email',
+    field: 'pickupPointAddress',
+    label: 'Adresse point relais',
     type: 'string',
+    payloadLevel: 'metadata',
   },
   {
-    field: 'user.phone',
-    label: 'Téléphone',
-    type: 'string',
+    field: 'pickupDeadline',
+    label: 'Date limite retrait',
+    type: 'date',
+    payloadLevel: 'metadata',
+  },
+
+  // Fidélité / retail
+  {
+    field: 'pointsBalance',
+    label: 'Solde points',
+    type: 'number',
+    payloadLevel: 'metadata',
   },
   {
-    field: 'user.loyalty_tier',
+    field: 'memberTier',
     label: 'Niveau fidélité',
     type: 'string',
+    payloadLevel: 'metadata',
+    description: 'Ex: Gold, Silver, Bronze',
   },
   {
-    field: 'user.points',
-    label: 'Points',
-    type: 'number',
-  },
-  // ── Pass display fields ────────────────────────────────────────────────────
-  {
-    field: 'pass.backgroundColor',
-    label: 'Couleur de fond',
-    type: 'string',
-    description: 'Hex ou nom CSS',
-  },
-  {
-    field: 'pass.foregroundColor',
-    label: 'Couleur texte',
-    type: 'string',
-  },
-  {
-    field: 'pass.labelColor',
-    label: 'Couleur labels',
-    type: 'string',
-  },
-  {
-    field: 'pass.logoText',
-    label: 'Texte logo',
-    type: 'string',
-  },
-  // ── Opt-in / lifecycle ────────────────────────────────────────────────────
-  {
-    field: 'install_status',
-    label: 'Statut installation',
-    type: 'boolean',
-    description: 'true si la carte est installée dans le wallet natif',
-  },
-  {
-    field: 'user.expiration_date',
+    field: 'expiryDate',
     label: "Date d'expiration",
     type: 'date',
-  },
-  // ── Custom fields (prefix user.custom_) ───────────────────────────────────
-  {
-    field: 'user.custom_field_1',
-    label: 'Champ personnalisé 1',
-    type: 'string',
+    payloadLevel: 'metadata',
   },
   {
-    field: 'user.custom_field_2',
-    label: 'Champ personnalisé 2',
+    field: 'offerLabel',
+    label: 'Libellé offre / avantage',
     type: 'string',
+    payloadLevel: 'metadata',
+  },
+
+  // Événementiel / billet
+  {
+    field: 'eventDate',
+    label: "Date de l'événement",
+    type: 'date',
+    payloadLevel: 'metadata',
   },
   {
-    field: 'user.custom_field_3',
-    label: 'Champ personnalisé 3',
+    field: 'eventVenue',
+    label: "Lieu de l'événement",
     type: 'string',
+    payloadLevel: 'metadata',
+  },
+  {
+    field: 'seat',
+    label: 'Siège / emplacement',
+    type: 'string',
+    payloadLevel: 'metadata',
+  },
+
+  // Générique
+  {
+    field: 'referenceCode',
+    label: 'Code de référence',
+    type: 'string',
+    payloadLevel: 'metadata',
+  },
+  {
+    field: 'qrCodeToken',
+    label: 'Token QR Code',
+    type: 'string',
+    payloadLevel: 'metadata',
+    description: 'Valeur encodée dans le QR Code affiché sur la carte',
+  },
+  {
+    field: 'companyName',
+    label: 'Nom expéditeur / société',
+    type: 'string',
+    payloadLevel: 'metadata',
   },
 ]
+
+export const ROOT_FIELDS = new Set(
+  WALLET_FIELDS.filter((f) => f.payloadLevel === 'root').map((f) => f.field),
+)
 
 export const WALLET_FIELD_NAMES = WALLET_FIELDS.map((f) => f.field)
 

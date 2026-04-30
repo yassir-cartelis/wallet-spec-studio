@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useSpecStore } from '@/stores/spec'
-import { WALLET_FIELDS } from '@/config/walletFields'
+import { WALLET_FIELDS, ROOT_FIELDS } from '@/config/walletFields'
 import StepShell from '@/components/StepShell.vue'
 import StepHint from '@/components/StepHint.vue'
+import CodeBlock from '@/components/CodeBlock.vue'
 import type { FieldType } from '@/types/spec'
 
 const store = useSpecStore()
@@ -10,48 +12,68 @@ const s = store.state
 
 const TYPES: FieldType[] = ['string', 'boolean', 'number', 'date']
 
-// Prefixes that are already valid wallet field namespaces
-const KNOWN_PREFIXES = ['user.', 'pass.', 'install_status']
-
-/**
- * Called on blur — if the value is a bare word with no known prefix,
- * auto-prefix it with "user." (e.g. "delivery_date" → "user.delivery_date")
- */
-function normalizeWalletField(field: { walletField: string }) {
-  const v = field.walletField.trim()
-  if (!v) return
-  const alreadyPrefixed = KNOWN_PREFIXES.some((p) => v.startsWith(p))
-  if (!alreadyPrefixed) {
-    field.walletField = `user.${v}`
-  }
+// Calcule le niveau effectif en temps réel depuis le walletField (ignore la valeur stockée)
+function effectiveLevel(walletField: string): 'root' | 'metadata' {
+  return ROOT_FIELDS.has(walletField) ? 'root' : 'metadata'
 }
 
-// Quick-add presets
+// Synchronise payloadLevel au store quand le champ wallet change
+function onWalletFieldChange(field: { walletField: string; payloadLevel: 'root' | 'metadata' }) {
+  field.payloadLevel = effectiveLevel(field.walletField)
+}
+
+// Presets
 const PRESETS = [
-  { sourceField: s.meta.accountId ? 'parcelNumber' : 'identifier', walletField: 'user.identifier', type: 'string' as FieldType, required: true },
-  { sourceField: 'parcelStatus', walletField: 'user.status', type: 'string' as FieldType, required: false },
-  { sourceField: 'recipientFirstName', walletField: 'user.firstName', type: 'string' as FieldType, required: false },
-  { sourceField: 'recipientLastName', walletField: 'user.lastName', type: 'string' as FieldType, required: false },
+  { sourceField: '', walletField: 'identifier', type: 'string' as FieldType, required: true, payloadLevel: 'root' as const },
+  { sourceField: '', walletField: 'loyaltyStatus', type: 'string' as FieldType, required: false, payloadLevel: 'root' as const },
 ]
 
 function addPreset(preset: typeof PRESETS[0]) {
   const exists = s.mapping.some((f) => f.walletField === preset.walletField)
   if (!exists) store.addMapping(preset)
 }
+
+// Preview du payload complet (tous les champs mappés)
+const payloadPreview = computed(() => {
+  if (s.mapping.length === 0) return null
+  const root: Record<string, unknown> = {}
+  const metadatas: Record<string, unknown> = {}
+
+  for (const field of s.mapping) {
+    if (!field.walletField) continue
+    const val = field.example || `<${field.type}>`
+    if (effectiveLevel(field.walletField) === 'root') {
+      root[field.walletField] = val
+    } else {
+      metadatas[field.walletField] = val
+    }
+  }
+
+  const obj: Record<string, unknown> = { ...root }
+  if (Object.keys(metadatas).length > 0) obj.metadatas = metadatas
+  return JSON.stringify([obj], null, 2)
+})
 </script>
 
 <template>
-  <StepShell icon="🗺️" title="Contrat de données" description="Mapping des champs du système source vers les champs Wallet Brevo.">
+  <StepShell icon="🗺️" title="Contrat de données" description="Mapping des champs source vers le payload API Captain Wallet.">
 
-    <StepHint title="Comment remplir ce mapping ?">
-      <p><strong>Champ source</strong> : le nom exact du champ côté système client (CRM, backend, export). Respecte la casse du système source. Ex : <code class="bg-blue-100 px-1 rounded font-mono text-xs">STATUT_LIVRAISON</code>, <code class="bg-blue-100 px-1 rounded font-mono text-xs">recipientEmail</code>.</p>
-      <p><strong>Champ Wallet</strong> : la cible dans l'API Wallet Brevo. Commence à taper — les champs standards apparaissent en suggestion. Pour un champ personnalisé, tape directement son nom (ex: <code class="bg-blue-100 px-1 rounded font-mono text-xs">points_balance</code>) et il sera automatiquement préfixé en <code class="bg-blue-100 px-1 rounded font-mono text-xs">user.points_balance</code>.</p>
-      <p><strong>Requis</strong> : coche uniquement les champs sans lesquels la carte ne peut pas être créée. En pratique : seulement <code class="bg-blue-100 px-1 rounded font-mono text-xs">user.identifier</code> est toujours requis.</p>
+    <StepHint title="Structure du payload API">
+      <p>L'API Captain Wallet attend un tableau d'objets avec cette structure :</p>
+      <pre class="bg-blue-50 rounded p-2 text-xs font-mono mt-1 overflow-x-auto">[{
+  "identifier": "...",       <span class="text-blue-500">← racine, obligatoire</span>
+  "loyaltyStatus": "...",    <span class="text-blue-500">← racine, statut affiché</span>
+  "metadatas": {             <span class="text-blue-500">← tous les autres champs</span>
+    "deliveryDate": "...",
+    "customField": "..."
+  }
+}]</pre>
+      <p class="mt-2">Le badge <span class="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded font-medium">root</span> ou <span class="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded font-medium">metadata</span> est automatiquement assigné selon le champ Wallet choisi.</p>
     </StepHint>
 
     <!-- Quick presets -->
     <div>
-      <p class="text-xs text-gray-500 mb-2">Ajout rapide :</p>
+      <p class="text-xs text-gray-500 mb-2">Ajouter les champs racine :</p>
       <div class="flex gap-2 flex-wrap">
         <button
           v-for="preset in PRESETS"
@@ -62,19 +84,18 @@ function addPreset(preset: typeof PRESETS[0]) {
           :class="s.mapping.some(f => f.walletField === preset.walletField)
             ? 'bg-gray-100 text-gray-300 border-gray-100 cursor-default'
             : 'bg-white text-gray-600 border-gray-200 hover:border-brand-400 hover:text-brand-600'"
-        >
-          {{ preset.walletField }}
-        </button>
+        >{{ preset.walletField }}</button>
       </div>
     </div>
 
-    <!-- Mapping table -->
+    <!-- Mapping rows -->
     <div class="space-y-2">
       <!-- Header -->
-      <div class="grid grid-cols-[1fr_1fr_100px_80px_32px] gap-2 px-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
+      <div class="grid grid-cols-[1fr_1fr_90px_72px_52px_28px] gap-2 px-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
         <span>Champ source</span>
         <span>Champ Wallet</span>
         <span>Type</span>
+        <span>Niveau</span>
         <span>Requis</span>
         <span></span>
       </div>
@@ -83,39 +104,59 @@ function addPreset(preset: typeof PRESETS[0]) {
       <div
         v-for="field in s.mapping"
         :key="field.id"
-        class="grid grid-cols-[1fr_1fr_100px_80px_32px] gap-2 items-center p-2 rounded-lg border border-gray-100 bg-white hover:border-gray-200 transition-colors"
+        class="rounded-lg border border-gray-100 bg-white hover:border-gray-200 transition-colors overflow-hidden"
       >
-        <input
-          v-model="field.sourceField"
-          type="text"
-          placeholder="parcelStatus"
-          class="input font-mono text-sm"
-        />
-        <input
-          v-model="field.walletField"
-          type="text"
-          list="wallet-fields-list"
-          placeholder="user.status"
-          class="input text-sm font-mono"
-          @blur="normalizeWalletField(field)"
-        />
-        <datalist id="wallet-fields-list">
-          <option v-for="wf in WALLET_FIELDS" :key="wf.field" :value="wf.field" /></datalist>
-        <select v-model="field.type" class="input text-sm">
-          <option v-for="t in TYPES" :key="t" :value="t">{{ t }}</option>
-        </select>
-        <div class="flex justify-center">
-          <input type="checkbox" v-model="field.required" class="h-4 w-4 rounded accent-brand-600" />
+        <!-- Main row -->
+        <div class="grid grid-cols-[1fr_1fr_90px_72px_52px_28px] gap-2 items-center p-2">
+          <input
+            v-model="field.sourceField"
+            type="text"
+            placeholder="parcelStatus"
+            class="input font-mono text-sm"
+          />
+          <input
+            v-model="field.walletField"
+            type="text"
+            list="wallet-fields-list"
+            placeholder="loyaltyStatus"
+            class="input text-sm font-mono"
+            @change="onWalletFieldChange(field)"
+          />
+          <datalist id="wallet-fields-list">
+            <option v-for="wf in WALLET_FIELDS" :key="wf.field" :value="wf.field" />
+          </datalist>
+          <select v-model="field.type" class="input text-sm">
+            <option v-for="t in TYPES" :key="t" :value="t">{{ t }}</option>
+          </select>
+          <!-- Level badge — calculé depuis walletField, pas depuis la valeur stockée -->
+          <span
+            class="text-[11px] font-medium px-2 py-0.5 rounded-full text-center"
+            :class="effectiveLevel(field.walletField) === 'root'
+              ? 'bg-green-100 text-green-700'
+              : 'bg-blue-100 text-blue-700'"
+          >{{ effectiveLevel(field.walletField) }}</span>
+          <div class="flex justify-center">
+            <input type="checkbox" v-model="field.required" class="h-4 w-4 rounded accent-brand-600" />
+          </div>
+          <button
+            @click="store.removeMapping(field.id)"
+            class="text-gray-300 hover:text-red-400 transition-colors text-sm"
+          >✕</button>
         </div>
-        <button
-          @click="store.removeMapping(field.id)"
-          class="text-gray-300 hover:text-red-400 transition-colors text-sm"
-        >✕</button>
+        <!-- Notes row — toujours visible -->
+        <div class="px-2 pb-2">
+          <input
+            v-model="field.notes"
+            type="text"
+            placeholder="Règle de transformation, contrainte, exemple de valeur…"
+            class="w-full text-xs border border-gray-100 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-300 placeholder:text-gray-300 bg-gray-50"
+          />
+        </div>
       </div>
 
       <!-- Empty state -->
       <div v-if="s.mapping.length === 0" class="text-center py-8 text-gray-400 text-sm border border-dashed border-gray-200 rounded-lg">
-        Aucun champ mappé — cliquez sur "Ajouter un champ" ou utilisez les presets ci-dessus.
+        Aucun champ mappé — utilisez les presets ci-dessus ou "Ajouter un champ".
       </div>
     </div>
 
@@ -124,21 +165,10 @@ function addPreset(preset: typeof PRESETS[0]) {
       + Ajouter un champ
     </button>
 
-    <!-- Notes per field (expanded on demand) -->
-    <details v-if="s.mapping.length > 0" class="mt-2">
-      <summary class="text-xs text-gray-400 cursor-pointer hover:text-gray-600">Ajouter des notes par champ</summary>
-      <div class="mt-3 space-y-2">
-        <div v-for="field in s.mapping" :key="'note-' + field.id" class="flex gap-2 items-start">
-          <span class="text-xs font-mono text-gray-500 pt-2 w-36 shrink-0">{{ field.walletField || field.sourceField || '—' }}</span>
-          <input
-            v-model="field.notes"
-            type="text"
-            placeholder="Note / contrainte…"
-            class="input text-sm flex-1"
-          />
-        </div>
-      </div>
-    </details>
+    <!-- Payload preview -->
+    <div v-if="payloadPreview">
+      <CodeBlock :code="payloadPreview" label="Payload API généré (PUT /v2/contacts/{project})" lang="json" />
+    </div>
 
   </StepShell>
 </template>

@@ -6,8 +6,9 @@ export function usePayload() {
   const s = store.state
 
   // ── Entry URL ─────────────────────────────────────────────────────────────
+  // Le paramètre est toujours "data=" (clair ou chiffré selon mode)
 
-  function buildUrl(env: 'qlf' | 'prod', channel = 'email', tag = 'crm_email') {
+  function buildUrl(env: 'qlf' | 'prod', campaignSlug: string, channel = 'email', tag = 'crm_email') {
     const { accountId, projectId } = s.meta
     const { pivotVar, pivotExample, baseUrlQlf, baseUrlProd } = s.entry
     const base =
@@ -15,38 +16,60 @@ export function usePayload() {
         ? baseUrlQlf || `https://qlf-${accountId}.captainwallet.com`
         : baseUrlProd || `https://${accountId}.captainwallet.com`
     const identifier = encodeURIComponent(pivotExample || `{{contact.${pivotVar?.toUpperCase() || 'IDENTIFIER'}}}`)
-    return `${base}/${projectId}/loyalty?user%5Bidentifier%5D=${identifier}&channel=${channel}&tag=${tag}`
+    const dataParam = s.security.mode === 'aes256cbc' ? '<valeur_chiffrée>' : identifier
+    return `${base}/${projectId}/${campaignSlug}?data=${dataParam}&channel=${channel}&tag=${tag}`
   }
 
-  const urlQlf = computed(() => buildUrl('qlf'))
-  const urlProd = computed(() => buildUrl('prod'))
+  // URL pour la première campagne (utilisé dans StepSecurity)
+  const urlQlf = computed(() => buildUrl('qlf', s.campaigns[0]?.name || 'loyalty'))
+  const urlProd = computed(() => buildUrl('prod', s.campaigns[0]?.name || 'loyalty'))
+
+  // URLs pour toutes les campagnes (utilisé dans StepIdentity)
+  const urlsPerCampaign = computed(() =>
+    s.campaigns.map((c) => ({
+      name: c.name,
+      label: c.label || c.name,
+      qlf: buildUrl('qlf', c.name),
+      prod: buildUrl('prod', c.name),
+    })),
+  )
 
   // ── API payloads ──────────────────────────────────────────────────────────
+  // Structure réelle CW : [{ identifier, loyaltyStatus, metadatas: {...} }]
 
   function buildPayloadForFields(fieldIds: string[]) {
-    const payload: Record<string, unknown> = {}
+    const root: Record<string, unknown> = {}
+    const metadatas: Record<string, unknown> = {}
+
     for (const id of fieldIds) {
       const field = s.mapping.find((f) => f.id === id)
-      if (!field) continue
+      if (!field || !field.walletField) continue
       const value = field.example || exampleValue(field.type)
-      setNested(payload, field.walletField, value)
+      if (field.payloadLevel === 'root') {
+        root[field.walletField] = value
+      } else {
+        metadatas[field.walletField] = value
+      }
     }
-    return payload
+
+    const obj: Record<string, unknown> = { ...root }
+    if (Object.keys(metadatas).length > 0) {
+      obj.metadatas = metadatas
+    }
+    return [obj]
   }
 
   const createPayload = computed(() => buildPayloadForFields(s.flows.create.fields))
   const updatePayload = computed(() => buildPayloadForFields(s.flows.update.fields))
 
   const optinPayload = computed(() => ({
+    identifier: s.entry.pivotExample || `{{${s.entry.pivotVar}}}`,
     install_status: true,
-    user: {
-      identifier: s.entry.pivotExample || `{{${s.entry.pivotVar}}}`,
-    },
   }))
 
   const anonymizePayload = computed(() => ({
-    user: {
-      identifier: s.entry.pivotExample || `{{${s.entry.pivotVar}}}`,
+    identifier: s.entry.pivotExample || `{{${s.entry.pivotVar}}}`,
+    metadatas: {
       email: 'anonymized@void.invalid',
       firstName: 'ANONYMIZED',
       lastName: 'ANONYMIZED',
@@ -78,6 +101,7 @@ export function usePayload() {
   return {
     urlQlf,
     urlProd,
+    urlsPerCampaign,
     createPayload,
     updatePayload,
     optinPayload,
@@ -87,8 +111,6 @@ export function usePayload() {
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function exampleValue(type: string): unknown {
   switch (type) {
     case 'boolean': return true
@@ -96,15 +118,4 @@ function exampleValue(type: string): unknown {
     case 'date': return new Date().toISOString().split('T')[0]
     default: return '<string>'
   }
-}
-
-/** Sets a nested key like "user.status" on an object */
-function setNested(obj: Record<string, unknown>, path: string, value: unknown) {
-  const parts = path.split('.')
-  let cur = obj
-  for (let i = 0; i < parts.length - 1; i++) {
-    if (!cur[parts[i]]) cur[parts[i]] = {}
-    cur = cur[parts[i]] as Record<string, unknown>
-  }
-  cur[parts[parts.length - 1]] = value
 }

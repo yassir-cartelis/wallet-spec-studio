@@ -8,7 +8,7 @@ import StepHint from '@/components/StepHint.vue'
 
 const store = useSpecStore()
 const s = store.state
-const { urlQlf, urlProd } = usePayload()
+const { urlsPerCampaign } = usePayload()
 
 const CHANNELS = ['email', 'sms', 'push', 'web', 'inapp']
 
@@ -25,7 +25,7 @@ function toggleChannel(ch: string) {
     <StepHint title="C'est quoi la variable pivot ?">
       <p>Le pivot est <strong>l'identifiant unique</strong> qui relie une donnée côté client à une carte Wallet. C'est autour de lui que tout s'articule.</p>
       <p>En pratique : c'est le nom de la variable dans ton système source qui contient cet identifiant. Ex : <code class="bg-blue-100 px-1 rounded font-mono text-xs">parcelNumber</code>, <code class="bg-blue-100 px-1 rounded font-mono text-xs">orderId</code>, <code class="bg-blue-100 px-1 rounded font-mono text-xs">customerId</code>.</p>
-      <p>Ce champ devient <code class="bg-blue-100 px-1 rounded font-mono text-xs">user.identifier</code> côté Wallet Brevo. C'est le seul champ <strong>obligatoire</strong> dans tous les appels API.</p>
+      <p>Ce champ alimente le champ <code class="bg-blue-100 px-1 rounded font-mono text-xs">identifier</code> à la racine du payload API Captain Wallet. C'est le seul champ <strong>obligatoire</strong> dans tous les appels.</p>
     </StepHint>
 
     <!-- Pivot -->
@@ -65,11 +65,21 @@ function toggleChannel(ch: string) {
       </div>
     </FormField>
 
-    <!-- URL Preview -->
-    <div v-if="s.entry.pivotVar" class="space-y-3">
-      <h3 class="text-sm font-semibold text-gray-700">URLs générées</h3>
-      <CodeBlock :code="urlQlf" label="URL QLF" />
-      <CodeBlock :code="urlProd" label="URL PROD" />
+    <!-- URL Preview par campagne -->
+    <div v-if="s.entry.pivotVar && s.campaigns.length" class="space-y-4">
+      <h3 class="text-sm font-semibold text-gray-700">URLs d'encartement par campagne</h3>
+      <div
+        v-for="c in urlsPerCampaign"
+        :key="c.name"
+        class="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-2"
+      >
+        <p class="text-xs font-semibold text-gray-600">
+          {{ c.label }}
+          <span v-if="c.name" class="font-normal text-gray-400 font-mono ml-1">{{ c.name }}</span>
+        </p>
+        <CodeBlock :code="c.qlf" label="QLF" />
+        <CodeBlock :code="c.prod" label="PROD" />
+      </div>
     </div>
 
   </StepShell>
